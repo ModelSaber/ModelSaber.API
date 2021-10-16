@@ -1,18 +1,13 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.HttpsPolicy;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
+using ModelSaber.Database;
+using Newtonsoft.Json;
 
-namespace ModelSaberV3API
+namespace ModelSaber.API
 {
     public class Startup
     {
@@ -26,11 +21,18 @@ namespace ModelSaberV3API
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddDbContext<ModelSaberDbContext>();
             services.AddRouting(options => options.LowercaseUrls = true);
-            services.AddControllers();
+            services.AddControllers().AddNewtonsoftJson(options =>
+            {
+                options.SerializerSettings.Converters.Add(new LongConverter());
+                options.SerializerSettings.DateTimeZoneHandling = DateTimeZoneHandling.Utc;
+                options.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
+            });
             services.AddSwaggerGen(c =>
             {
-                c.SwaggerDoc("v1", new OpenApiInfo { Title = "ModelSaberV3_API", Version = "v1" });
+                c.SwaggerDoc("v1", new OpenApiInfo { Title = "ModelSaber_API", Version = "v1" });
+                c.DocumentFilter<SwaggerAddEnumDescriptions>();
             });
         }
 
@@ -41,7 +43,11 @@ namespace ModelSaberV3API
             {
                 app.UseDeveloperExceptionPage();
                 app.UseSwagger();
-                app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "ModelSaberV3_API v1"));
+                app.UseSwaggerUI(c =>
+                {
+                    c.SwaggerEndpoint("/swagger/v1/swagger.json", "ModelSaber_API v1");
+                    c.RoutePrefix = "";
+                });
             }
 
             app.UseHttpsRedirection();

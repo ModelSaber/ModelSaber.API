@@ -1,10 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Platform = ModelSaberV3API.APIControllers.PlatformsController;
 
-namespace ModelSaberV3API.API.Quest
+namespace ModelSaber.API.Quest
 {
     [ApiController, Route("api/quest/[controller]")]
-    public class PlatformsController : Platform
+    public class PlatformsController : Components.PlatformsController
     {
         [HttpGet]
         public override ActionResult ReturnPlatforms()

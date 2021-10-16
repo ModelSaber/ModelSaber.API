@@ -1,4 +1,4 @@
-﻿namespace ModelSaberV3API.APIControllers
+﻿namespace ModelSaber.API.Components
 {
     public enum ModelTypes
     {

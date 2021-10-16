@@ -1,12 +1,9 @@
-﻿using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Saber = ModelSaberV3API.APIControllers.SabersController;
+﻿using Microsoft.AspNetCore.Mvc;
 
-namespace ModelSaberV3API.API.Quest
+namespace ModelSaber.API.Quest
 {
     [ApiController, Route("api/quest/[controller]")]
-    public class SabersController : Saber
+    public class SabersController : Components.SabersController
     {
         [HttpGet]
         public override ActionResult ReturnSabers()

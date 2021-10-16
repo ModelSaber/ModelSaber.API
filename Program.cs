@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
 
-namespace ModelSaberV3API
+namespace ModelSaber.API
 {
     public class Program
     {

@@ -1,10 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Note = ModelSaberV3API.APIControllers.NotesController;
 
-namespace ModelSaberV3API.API.Quest
+namespace ModelSaber.API.Quest
 {
     [ApiController, Route("api/quest/[controller]")]
-    public class NotesController : Note
+    public class NotesController : Components.NotesController
     {
         [HttpGet]
         public override ActionResult ReturnNotes()

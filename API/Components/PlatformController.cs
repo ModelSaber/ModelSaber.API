@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 
-namespace ModelSaberV3API.APIControllers
+namespace ModelSaber.API.Components
 {
     public abstract class PlatformsController : Controller
     {

@@ -1,10 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Saber = ModelSaberV3API.APIControllers.SabersController;
 
-namespace ModelSaberV3API.API.PC
+namespace ModelSaber.API.PC
 {
     [ApiController, Route("api/pc/[controller]")]
-    public class SabersController : Saber
+    public class SabersController : Components.SabersController
     {
         [HttpGet]
         public override ActionResult ReturnSabers()

@@ -1,10 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Weather = ModelSaberV3API.APIControllers.EffectsController;
 
-namespace ModelSaberV3API.API.PC
+namespace ModelSaber.API.PC
 {
     [ApiController, Route("api/pc/[controller]")]
-    public class EffectsController : Weather
+    public class EffectsController : Components.EffectsController
     {
         [HttpGet]
         public override ActionResult ReturnEffects()

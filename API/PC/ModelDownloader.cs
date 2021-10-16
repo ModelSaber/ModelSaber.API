@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using ModelSaberV3API.APIControllers;
+using ModelSaber.API.Components;
 
-namespace ModelSaberV3API.API.PC
+namespace ModelSaber.API.PC
 {
     [ApiController, Route("api/all")]
     public class ModelDownloader : ModelDownloaderController

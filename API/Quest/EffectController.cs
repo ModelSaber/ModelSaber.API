@@ -2,7 +2,7 @@
 
 namespace ModelSaber.API.Quest
 {
-    [ApiController, Route("api/quest/[controller]")]
+    [ApiController, Route("quest/[controller]")]
     public class EffectsController : Components.EffectsController
     {
         [HttpGet]

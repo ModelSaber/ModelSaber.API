@@ -3,7 +3,7 @@ using ModelSaber.API.Components;
 
 namespace ModelSaber.API.PC
 {
-    [ApiController, Route("api/all")]
+    [ApiController, Route("/all")]
     public class ModelDownloader : ModelDownloaderController
     {
         [HttpGet]

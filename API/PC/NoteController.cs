@@ -2,7 +2,7 @@
 
 namespace ModelSaber.API.PC
 {
-    [ApiController, Route("api/pc/[controller]")]
+    [ApiController, Route("pc/[controller]")]
     public class NotesController : Components.NotesController
     {
         [HttpGet]

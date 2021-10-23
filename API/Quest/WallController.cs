@@ -1,4 +1,9 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Collections.Generic;
+using System.Linq;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using ModelSaber.Database;
+using ModelSaber.Database.Models;
 
 namespace ModelSaber.API.Quest
 {
@@ -6,9 +11,13 @@ namespace ModelSaber.API.Quest
     public class WallsController : Components.WallsController
     {
         [HttpGet]
-        public override ActionResult ReturnWalls()
+        public override ActionResult<List<Model>> ReturnWalls()
         {
-            return NotFound();
+            return Ok(dbContext.Models.Where(t => t.Type == TypeEnum.Wall).Include(t => t.ModelVariations).Include(t => t.ModelVariation).Include(t => t.Tags).ThenInclude(t => t.Tag).Include(t => t.User).ToList());
+        }
+
+        public WallsController(ModelSaberDbContext dbContext) : base(dbContext)
+        {
         }
     }
 }

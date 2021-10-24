@@ -1,9 +1,14 @@
+using GraphQL.Server;
+using GraphQL.Server.Transports.AspNetCore;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
+using ModelSaber.API.Components;
 using ModelSaber.Database;
 using Newtonsoft.Json;
 
@@ -21,7 +26,12 @@ namespace ModelSaber.API
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddDbContext<ModelSaberDbContext>();
+            services.Configure<KestrelServerOptions>(options =>
+            {
+                options.AllowSynchronousIO = true;
+            });
+            services.AddDbContext<ModelSaberDbContext>(ServiceLifetime.Singleton);
+            services.AddSingleton<ModelSaberSchema>();
             services.AddRouting(options => options.LowercaseUrls = true);
             services.AddControllers().AddNewtonsoftJson(options =>
             {
@@ -29,9 +39,16 @@ namespace ModelSaber.API
                 options.SerializerSettings.DateTimeZoneHandling = DateTimeZoneHandling.Utc;
                 options.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
             });
+            services.AddGraphQL((options, provider) =>
+            {
+                options.EnableMetrics = true;
+                var logger = provider.GetRequiredService<ILogger<Startup>>();
+                options.UnhandledExceptionDelegate =
+                    ctx => logger.LogError($"{ctx.OriginalException.Message} occurred.");
+            }).AddNewtonsoftJson().AddDataLoader().AddGraphTypes(typeof(ModelSaberSchema));
             services.AddSwaggerGen(c =>
             {
-                c.SwaggerDoc("v1", new OpenApiInfo { Title = "ModelSaber_API", Version = "v1" });
+                c.SwaggerDoc("v3", new OpenApiInfo { Title = "ModelSaber_API", Version = "v3" });
                 c.DocumentFilter<SwaggerAddEnumDescriptions>();
             });
         }
@@ -45,10 +62,13 @@ namespace ModelSaber.API
                 app.UseSwagger();
                 app.UseSwaggerUI(c =>
                 {
-                    c.SwaggerEndpoint("/swagger/v1/swagger.json", "ModelSaber_API v1");
+                    c.SwaggerEndpoint("/swagger/v3/swagger.json", "ModelSaber API v3");
                     c.RoutePrefix = "";
                 });
             }
+            
+            app.UseGraphQL<ModelSaberSchema>();
+            app.UseGraphQLPlayground();
 
             app.UseHttpsRedirection();
 

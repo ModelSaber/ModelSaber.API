@@ -1,5 +1,6 @@
 using GraphQL.Server;
 using GraphQL.Server.Transports.AspNetCore;
+using GraphQL.Validation.Complexity;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Server.Kestrel.Core;

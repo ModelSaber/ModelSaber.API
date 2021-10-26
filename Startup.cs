@@ -26,9 +26,12 @@ namespace ModelSaber.API
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.Configure<KestrelServerOptions>(options =>
+            services.AddCors(options =>
             {
-                options.AllowSynchronousIO = true;
+                options.AddPolicy("DefaultPolicy", builder =>
+                {
+                    builder.AllowAnyHeader().WithMethods("GET", "POST").AllowAnyOrigin();
+                });
             });
             services.AddDbContext<ModelSaberDbContext>(ServiceLifetime.Singleton);
             services.AddSingleton<ModelSaberSchema>();
@@ -45,7 +48,7 @@ namespace ModelSaber.API
                 var logger = provider.GetRequiredService<ILogger<Startup>>();
                 options.UnhandledExceptionDelegate =
                     ctx => logger.LogError($"{ctx.OriginalException.Message} occurred.");
-            }).AddNewtonsoftJson().AddDataLoader().AddGraphTypes(typeof(ModelSaberSchema));
+            }).AddSystemTextJson().AddDataLoader().AddGraphTypes(typeof(ModelSaberSchema));
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v3", new OpenApiInfo { Title = "ModelSaber_API", Version = "v3" });
@@ -66,7 +69,9 @@ namespace ModelSaber.API
                     c.RoutePrefix = "";
                 });
             }
-            
+
+            app.UseCors("DefaultPolicy");
+
             app.UseGraphQL<ModelSaberSchema>();
             app.UseGraphQLPlayground();
 

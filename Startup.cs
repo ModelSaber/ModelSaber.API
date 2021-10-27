@@ -74,7 +74,8 @@ namespace ModelSaber.API
             app.UseCors("DefaultPolicy");
 
             app.UseGraphQL<ModelSaberSchema>();
-            app.UseGraphQLPlayground();
+            app.UseGraphQLPlayground("/gqlplayground");
+            app.UseGraphQLVoyager("/voyager");
 
             app.UseHttpsRedirection();
 

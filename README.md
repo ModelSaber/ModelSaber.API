@@ -14,3 +14,7 @@ This contains controllers for pc models
 
 #### Quest
 This contains controllers for quest models
+
+## GraphQL
+
+#### https://localhost:44300/voyager - Any GraphQL endpoint documentation will end up here.

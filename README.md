@@ -7,7 +7,7 @@ Go to the [ModelSaber](https://github.com/modelsaber/modelsaber) repo and run `g
 ## Structure
 
 #### Components
-This cointains the base components of the controllers
+This contains the base components of the controllers
 
 #### PC
 This contains controllers for pc models

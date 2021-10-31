@@ -63,13 +63,13 @@ namespace ModelSaber.API
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
-                app.UseSwagger();
-                app.UseSwaggerUI(c =>
-                {
-                    c.SwaggerEndpoint("/swagger/v3/swagger.json", "ModelSaber API v3");
-                    c.RoutePrefix = "";
-                });
             }
+            app.UseSwagger();
+            app.UseSwaggerUI(c =>
+            {
+                c.SwaggerEndpoint("/swagger/v3/swagger.json", "ModelSaber API v3");
+                c.RoutePrefix = "";
+            });
 
             app.UseCors("DefaultPolicy");
 

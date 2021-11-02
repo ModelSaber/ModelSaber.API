@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using GraphQL;
 using GraphQL.Builders;
 using GraphQL.Types;
 using GraphQL.Types.Relay.DataObjects;
@@ -26,6 +27,11 @@ namespace ModelSaber.API.Components
         {
             //Field<ListGraphType<TagType>>("tags", "The entire tag list endpoint", null, context => dbContext.Tags.Include(t => t.ModelTags).ThenInclude(t => t.Model).ThenInclude(t => t.Users).ThenInclude(t => t.User));
             Field<ListGraphType<UserType>>("users", "The entire user list", null, context => dbContext.Users.Include(t => t.Models).ThenInclude(t => t.Model).ThenInclude(t => t.Tags).ThenInclude(t => t.Tag));
+            Field<ModelType>("model", "Single model", new QueryArguments(new QueryArgument<NonNullGraphType<IdGraphType>> {Name = "id"}), context =>
+            {
+                var id = context.GetArgument<Guid>("id");
+                return dbContext.Models.Where(t => t.Uuid == id).IncludeModelData().First();
+            });
             Connection<ModelType>()
                 .Name("models")
                 .Description("Model list")

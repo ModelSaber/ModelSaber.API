@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using GraphQL.Server;
 using GraphQL.Server.Transports.AspNetCore;
 using GraphQL.Validation.Complexity;
@@ -12,6 +13,7 @@ using Microsoft.OpenApi.Models;
 using ModelSaber.API.Components;
 using ModelSaber.Database;
 using Newtonsoft.Json;
+using JsonConverter = System.Text.Json.Serialization.JsonConverter;
 
 namespace ModelSaber.API
 {
@@ -39,7 +41,7 @@ namespace ModelSaber.API
             services.AddRouting(options => options.LowercaseUrls = true);
             services.AddControllers().AddNewtonsoftJson(options =>
             {
-                options.SerializerSettings.Converters.Add(new LongConverter());
+                options.SerializerSettings.Converters.Add(new JsonNetLongConverter());
                 options.SerializerSettings.DateTimeZoneHandling = DateTimeZoneHandling.Utc;
                 options.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
             });
@@ -49,7 +51,10 @@ namespace ModelSaber.API
                 var logger = provider.GetRequiredService<ILogger<Startup>>();
                 options.UnhandledExceptionDelegate =
                     ctx => logger.LogError($"{ctx.OriginalException.Message} occurred.");
-            }).AddSystemTextJson().AddDataLoader().AddGraphTypes(typeof(ModelSaberSchema));
+            }).AddSystemTextJson(options =>
+            {
+                options.Converters.Add(new SystemJsonLongConverter());
+            }).AddDataLoader().AddGraphTypes(typeof(ModelSaberSchema));
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v3", new OpenApiInfo { Title = "ModelSaber_API", Version = "v3" });

@@ -9,7 +9,7 @@ using JsonSerializer = Newtonsoft.Json.JsonSerializer;
 
 namespace ModelSaber.API
 {
-    public class LongConverter : JsonConverter
+    public class JsonNetLongConverter : JsonConverter
     {
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
@@ -33,6 +33,19 @@ namespace ModelSaber.API
         public override bool CanConvert(Type objectType)
         {
             return objectType == typeof(ulong) || objectType == typeof(long);
+        }
+    }
+
+    public class SystemJsonLongConverter : System.Text.Json.Serialization.JsonConverter<ulong>
+    {
+        public override ulong Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            return Convert.ToUInt64(reader.GetString());
+        }
+
+        public override void Write(Utf8JsonWriter writer, ulong value, JsonSerializerOptions options)
+        {
+            writer.WriteStringValue(value.ToString());
         }
     }
 }

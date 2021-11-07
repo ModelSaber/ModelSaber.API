@@ -36,11 +36,12 @@ namespace ModelSaber.API.Components
                 .Name("models")
                 .Description("Model list")
                 .Bidirectional()
+                .Argument<TypeType>("modelType", "The model type you want to grab.")
                 .PageSize(100)
-                .ResolveAsync(context => ResolveModelConnectionAsync(dbContext, 
-                    d => d.Models, 
-                    (set, i, a, c) => set.GetModelAsync(i, a, c), 
-                    (set, i, a, c) => set.GetModelReverseAsync(i, a, c),
+                .ResolveAsync(context => ResolveModelConnectionAsync(dbContext,
+                    d => d.Models,
+                    (set, i, a, c) => set.GetModelAsync(i, a, (TypeEnum?)context.GetArgument(typeof(object), "modelType"), c),
+                    (set, i, a, c) => set.GetModelReverseAsync(i, a, (TypeEnum?)context.GetArgument(typeof(object), "modelType"), c),
                     model => model.Date,
                     (set, i, a, c) => set.GetModelNextPageAsync(i,a,c),
                     (set, i, a, c) => set.GetModelPreviousPageAsync(i,a,c),

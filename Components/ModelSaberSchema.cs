@@ -32,6 +32,7 @@ namespace ModelSaber.API.Components
                 var id = context.GetArgument<Guid>("id");
                 return dbContext.Models.Where(t => t.Uuid == id).IncludeModelData().First();
             });
+
             Connection<ModelType>()
                 .Name("models")
                 .Description("Model list")
@@ -46,6 +47,7 @@ namespace ModelSaber.API.Components
                     (set, i, a, c) => set.GetModelNextPageAsync(i,a,c),
                     (set, i, a, c) => set.GetModelPreviousPageAsync(i,a,c),
                     context));
+
             Connection<TagType>()
                 .Name("tags")
                 .Description("You wanted yer tags?")

@@ -57,7 +57,10 @@ namespace ModelSaber.API
             }).AddDataLoader().AddGraphTypes(typeof(ModelSaberSchema));
             services.AddSwaggerGen(c =>
             {
-                c.SwaggerDoc("v3", new OpenApiInfo { Title = "ModelSaber_API", Version = "v3" });
+                c.SwaggerDoc("v3", new OpenApiInfo { 
+                    Title = "ModelSaber.API", 
+                    Version = "v3",
+                    Description = ""});
                 c.DocumentFilter<SwaggerAddEnumDescriptions>();
             });
         }

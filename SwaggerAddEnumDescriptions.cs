@@ -79,13 +79,10 @@ namespace ModelSaber.API
                 );
         }
 
-        private Type GetEnumType(string enumName)
+        private Type? GetEnumType(string enumName)
         {
-            var assemblies = AppDomain.CurrentDomain.GetAssemblies();
-            var assembly = assemblies.FirstOrDefault(t => t.DefinedTypes.Any(f => f.FullName == enumName));
-            if (assembly is not null)
-                return assembly.DefinedTypes.FirstOrDefault(t => t.FullName == enumName)?.AsType();
-            return null;
+            var assembly = AppDomain.CurrentDomain.GetAssemblies().FirstOrDefault(t => t.DefinedTypes.Any(f => f.FullName == enumName));
+            return assembly?.DefinedTypes.FirstOrDefault(t => t.FullName == enumName)?.AsType();
         }
     }
 }

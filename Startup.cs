@@ -1,30 +1,33 @@
 using System.Collections.Generic;
+using GraphQL;
+using GraphQL.DataLoader;
+using GraphQL.Execution;
+using GraphQL.MicrosoftDI;
 using GraphQL.Server;
-using GraphQL.Server.Transports.AspNetCore;
-using GraphQL.Validation.Complexity;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
-using ModelSaber.API.Components;
+using ModelSaber.API.GraphQL;
 using ModelSaber.Database;
 using Newtonsoft.Json;
-using JsonConverter = System.Text.Json.Serialization.JsonConverter;
+using GraphQLBuilderExtensions = GraphQL.MicrosoftDI.GraphQLBuilderExtensions;
 
 namespace ModelSaber.API
 {
     public class Startup
     {
-        public Startup(IConfiguration configuration)
+        public Startup(IConfiguration configuration, IWebHostEnvironment environment)
         {
             Configuration = configuration;
+            Environment = environment;
         }
 
         public IConfiguration Configuration { get; }
+        public IWebHostEnvironment Environment { get; }
 
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
@@ -39,28 +42,40 @@ namespace ModelSaber.API
             services.AddDbContext<ModelSaberDbContext>(ServiceLifetime.Singleton);
             services.AddSingleton<ModelSaberSchema>();
             services.AddRouting(options => options.LowercaseUrls = true);
+            // TODO change over to SystemTextJson to force same converters between GQL and REST
             services.AddControllers().AddNewtonsoftJson(options =>
             {
                 options.SerializerSettings.Converters.Add(new JsonNetLongConverter());
                 options.SerializerSettings.DateTimeZoneHandling = DateTimeZoneHandling.Utc;
                 options.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
             });
-            services.AddGraphQL((options, provider) =>
-            {
-                options.EnableMetrics = true;
-                var logger = provider.GetRequiredService<ILogger<Startup>>();
-                options.UnhandledExceptionDelegate =
-                    ctx => logger.LogError($"{ctx.OriginalException.Message} occurred.");
-            }).AddSystemTextJson(options =>
-            {
-                options.Converters.Add(new SystemJsonLongConverter());
-            }).AddDataLoader().AddGraphTypes(typeof(ModelSaberSchema));
+            GraphQLBuilderExtensions.AddGraphQL(services)
+                .AddServer(true)
+                .AddSchema<ModelSaberSchema>()
+                .ConfigureExecution(options =>
+                {
+                    options.EnableMetrics = Environment.IsDevelopment();
+                    var logger = options.RequestServices?.GetRequiredService<ILogger<Startup>>();
+                    options.UnhandledExceptionDelegate = ctx =>
+                        logger?.LogError("{Error} occurred", ctx.OriginalException.Message);
+                })
+                .AddSystemTextJson(options =>
+                {
+                    options.Converters.AddRange(JsonConverters.Converters);
+                })
+                .AddErrorInfoProvider<DefaultErrorInfoProvider>() // TODO change this to custom error provider later https://github.com/graphql-dotnet/server/blob/develop/samples/Samples.Server/CustomErrorInfoProvider.cs
+                .Configure<ErrorInfoProviderOptions>(opt => opt.ExposeExceptionStackTrace = Environment.IsDevelopment())
+                //.AddWebSockets() // TODO update events through websocket how ever the fuck we are going to do that idk yet
+                .AddDataLoader()
+                .AddGraphTypes(typeof(ModelSaberSchema).Assembly);
             services.AddSwaggerGen(c =>
             {
-                c.SwaggerDoc("v3", new OpenApiInfo { 
-                    Title = "ModelSaber.API", 
+                c.SwaggerDoc("v3", new OpenApiInfo
+                {
+                    Title = "ModelSaber.API",
                     Version = "v3",
-                    Description = ""});
+                    Description = ""
+                });
                 c.DocumentFilter<SwaggerAddEnumDescriptions>();
             });
         }
@@ -81,18 +96,29 @@ namespace ModelSaber.API
 
             app.UseCors("DefaultPolicy");
 
-            app.UseGraphQL<ModelSaberSchema>();
+            app.UseGraphQL<ModelSaberSchema>(); // TODO possibly extend this to use https://github.com/graphql-dotnet/server/blob/develop/samples/Samples.Server/GraphQLHttpMiddlewareWithLogs.cs as a base for extending logging on GQL
             app.UseGraphQLPlayground("/gqlplayground");
             app.UseGraphQLVoyager("/voyager");
 
             app.UseHttpsRedirection();
 
             app.UseRouting();
-            
+
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllerRoute("default", "api/{controller}/{action=Index}/{id?}");
             });
+        }
+    }
+
+    public static class Extensions
+    {
+        public static void AddRange<T>(this ICollection<T> collection, IEnumerable<T> enumerable)
+        {
+            foreach (var element in enumerable)
+            {
+                collection.Add(element);
+            }
         }
     }
 }

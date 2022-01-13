@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using GraphQL;
+using GraphQL.Caching;
 using GraphQL.DataLoader;
 using GraphQL.Execution;
 using GraphQL.MicrosoftDI;
@@ -20,6 +22,8 @@ namespace ModelSaber.API
 {
     public class Startup
     {
+        private const long CacheSize = 10 * 1024 * 1024;
+
         public Startup(IConfiguration configuration, IWebHostEnvironment environment)
         {
             Configuration = configuration;
@@ -41,6 +45,12 @@ namespace ModelSaber.API
             });
             services.AddDbContext<ModelSaberDbContext>(ServiceLifetime.Singleton);
             services.AddSingleton<ModelSaberSchema>();
+            services.AddSingleton(_ => new MemoryDocumentCache(new MemoryDocumentCacheOptions
+            {
+                SizeLimit = CacheSize,
+                SlidingExpiration = new TimeSpan(1, 0, 0, 0),
+                ExpirationScanFrequency = new TimeSpan(0,0,10,0)
+            }));
             services.AddRouting(options => options.LowercaseUrls = true);
             // TODO change over to SystemTextJson to force same converters between GQL and REST
             services.AddControllers().AddNewtonsoftJson(options =>
@@ -67,6 +77,7 @@ namespace ModelSaber.API
                 .Configure<ErrorInfoProviderOptions>(opt => opt.ExposeExceptionStackTrace = Environment.IsDevelopment())
                 //.AddWebSockets() // TODO update events through websocket how ever the fuck we are going to do that idk yet
                 .AddDataLoader()
+                .AddDocumentCache<MemoryDocumentCache>()
                 .AddGraphTypes(typeof(ModelSaberSchema).Assembly);
             services.AddSwaggerGen(c =>
             {

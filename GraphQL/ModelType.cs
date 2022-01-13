@@ -18,6 +18,7 @@ namespace ModelSaber.API.GraphQL
             Field(o => o.Hash, type: typeof(StringGraphType));
             Field(o => o.Id);
             Field(o => o.Name);
+            Field(o => o.Description, true);
             Field(o => o.Platform, type: typeof(PlatformType));
             Field(o => o.Status, type: typeof(StatusType));
             Field(o => o.Type, type: typeof(TypeType));

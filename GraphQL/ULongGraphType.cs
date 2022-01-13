@@ -1,4 +1,5 @@
 ﻿using System;
+using GraphQL.Language.AST;
 using GraphQL.Types;
 
 namespace ModelSaber.API.GraphQL
@@ -27,5 +28,13 @@ namespace ModelSaber.API.GraphQL
                 return null;
             }
         }
+
+        public override object? ParseLiteral(IValue value) =>
+            value switch
+            {
+                NullValue => null,
+                StringValue stringValue => ParseValue(stringValue.Value),
+                _ => ThrowLiteralConversionError(value)
+            };
     }
 }

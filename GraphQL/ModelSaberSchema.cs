@@ -47,7 +47,7 @@ namespace ModelSaber.API.GraphQL
                     d => d.Models,
                     (set, i, a, c) => set.GetModelAsync(i, a, (TypeEnum?)context.GetArgument(typeof(object), "modelType"), c),
                     (set, i, a, c) => set.GetModelReverseAsync(i, a, (TypeEnum?)context.GetArgument(typeof(object), "modelType"), c),
-                    model => model.Date,
+                    model => model.Uuid,
                     (set, i, a, c) => set.GetModelNextPageAsync(i,a,c),
                     (set, i, a, c) => set.GetModelPreviousPageAsync(i,a,c),
                     context));
@@ -74,7 +74,7 @@ namespace ModelSaber.API.GraphQL
             Func<TR, TU> cursorFunc, 
             Func<DbSet<TR>, int?, TU?, CancellationToken, Task<bool>> afterCheckFunc,
             Func<DbSet<TR>, int?, TU?, CancellationToken, Task<bool>> beforeCheckFunc,
-            IResolveConnectionContext<object?> context) where TR : class
+            IResolveConnectionContext<object?> context) where TR : class where TU : struct
         {
             var first = context.First;
             var afterCursor = Cursor.FromCursor<TU>(context.After);

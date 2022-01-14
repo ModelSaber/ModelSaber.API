@@ -108,7 +108,7 @@ namespace ModelSaber.API.GraphQL
             Func<IEnumerable<TR>, int?, TU?, CancellationToken, Task<List<TR>>> afterFunc, 
             Func<TR, TU?> cursorFunc, 
             Func<IEnumerable<TR>, int?, TU?, CancellationToken, Task<bool>> afterCheckFunc,
-            Func<IEnumerable<TR>, int?, TU?, CancellationToken, Task<bool>> beforeCheckFunc) where TC : class
+            Func<IEnumerable<TR>, int?, TU?, CancellationToken, Task<bool>> beforeCheckFunc) where TC : class where TU : struct
         {
             var first = context.First;
             var afterCursor = Cursor.FromCursor<TU>(context.After);

@@ -10,11 +10,11 @@ namespace ModelSaber.API.GraphQL
 {
     public static class Cursor
     {
-        public static T? FromCursor<T>(string? cursor)
+        public static T? FromCursor<T>(string? cursor) where T : struct
         {
             if (string.IsNullOrEmpty(cursor))
             {
-                return default;
+                return null;
             }
 
             string decodedValue;
@@ -26,13 +26,18 @@ namespace ModelSaber.API.GraphQL
             {
                 return default;
             }
-
+            
             var type = typeof(T);
             type = Nullable.GetUnderlyingType(type) ?? type;
 
             if (type == typeof(DateTimeOffset))
             {
-                return (T)(object)DateTimeOffset.ParseExact(decodedValue, "o", CultureInfo.InvariantCulture);
+                return (T)(object)DateTimeOffset.ParseExact(decodedValue, "s", CultureInfo.InvariantCulture);
+            }
+
+            if (type == typeof(Guid))
+            {
+                return (T)(object)Guid.Parse(decodedValue);
             }
 
             return (T)Convert.ChangeType(decodedValue, type, CultureInfo.InvariantCulture);
@@ -67,7 +72,7 @@ namespace ModelSaber.API.GraphQL
 
             if (value is DateTimeOffset dateTimeOffset)
             {
-                return Base64Encode(dateTimeOffset.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture));
+                return Base64Encode(dateTimeOffset.ToUniversalTime().ToString("s", CultureInfo.InvariantCulture));
             }
 
             return Base64Encode(value.ToString()!);

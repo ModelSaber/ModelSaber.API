@@ -3,7 +3,7 @@ using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ModelSaber.Database;
-using ModelSaber.Database.Models;
+using ModelSaber.Models;
 
 namespace ModelSaber.API.PC
 {

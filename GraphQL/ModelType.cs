@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using GraphQL.Builders;
 using GraphQL.Types;
 using GraphQL.Types.Relay.DataObjects;
-using ModelSaber.Database.Models;
+using ModelSaber.Models;
 
 namespace ModelSaber.API.GraphQL
 {

@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc;
 using ModelSaber.Database;
-using ModelSaber.Database.Models;
+using ModelSaber.Models;
 
 namespace ModelSaber.API.Components
 {

@@ -9,6 +9,7 @@ namespace ModelSaber.API.GraphQL
         public ULongGraphType()
         {
             Name = "UInt64";
+            Description = "Stringed representation of ulong due to javascript cant handle 64 bit large integers without derping";
         }
 
         public override object? Serialize(object? value)

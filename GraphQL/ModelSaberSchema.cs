@@ -37,6 +37,13 @@ namespace ModelSaber.API.GraphQL
                 return dbContext.Models.Where(t => t.Uuid == id).IncludeModelData().First();
             });
 
+            Field<ListGraphType<StringGraphType>>("modelCursors", "Lists cursors based on pagination size", new QueryArguments(new QueryArgument<IntGraphType> { Name = "size", DefaultValue = 100 }), context =>
+            {
+                var modelCursors = dbContext.Models.ToList().Select(t => t.Uuid).Select(Cursor.ToCursor).ToList();
+                var size = context.GetArgument<int>("size");
+                return modelCursors.Chunk(size).Select(t => t.Last());
+            });
+
             Connection<ModelType>()
                 .Name("models")
                 .Description("Model list")
@@ -72,8 +79,8 @@ namespace ModelSaber.API.GraphQL
             Func<DbSet<TR>, int?, TU?, CancellationToken, Task<List<TR>>> beforeFunc, 
             Func<DbSet<TR>, int?, TU?, CancellationToken, Task<List<TR>>> afterFunc, 
             Func<TR, TU> cursorFunc, 
-            Func<DbSet<TR>, CancellationToken, int?, Task<bool>> afterCheckFunc,
-            Func<DbSet<TR>, CancellationToken, int?, Task<bool>> beforeCheckFunc,
+            Func<DbSet<TR>, CancellationToken, uint?, Task<bool>> afterCheckFunc,
+            Func<DbSet<TR>, CancellationToken, uint?, Task<bool>> beforeCheckFunc,
             IResolveConnectionContext<object?> context) where TR : BaseId where TU : struct
         {
             var first = context.First;
@@ -112,14 +119,14 @@ namespace ModelSaber.API.GraphQL
             CancellationToken cancellationToken, 
             Func<ModelSaberDbContext, DbSet<TR>> modelFunc,
             List<TR> list,
-            Func<DbSet<TR>, CancellationToken, int?, Task<bool>> func) where TR : BaseId
+            Func<DbSet<TR>, CancellationToken, uint?, Task<bool>> func) where TR : BaseId
             => func(modelFunc(dbContext), cancellationToken, list.FirstOrDefault()?.Id);
 
         private Task<bool> GetNextPageAsync<TR>(ModelSaberDbContext dbContext, 
             CancellationToken cancellationToken,
             Func<ModelSaberDbContext, DbSet<TR>> modelFunc,
             List<TR> list,
-            Func<DbSet<TR>, CancellationToken, int?, Task<bool>> func) where TR : BaseId
+            Func<DbSet<TR>, CancellationToken, uint?, Task<bool>> func) where TR : BaseId
             => func(modelFunc(dbContext), cancellationToken, list.LastOrDefault()?.Id);
 
         private Task<List<TR>> GetListAsync<TR, TU>(ModelSaberDbContext dbContext, int? first, TU? afterCursor, int? last, TU? beforeCursor, CancellationToken cancellationToken, Func<ModelSaberDbContext, DbSet<TR>> dbFunc, Func<DbSet<TR>, int?, TU?, CancellationToken, Task<List<TR>>> beforeFunc, Func<DbSet<TR>, int?, TU?, CancellationToken, Task<List<TR>>> afterFunc) where TR : class

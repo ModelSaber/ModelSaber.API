@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using GraphQL;
 using GraphQL.Caching;
 using GraphQL.DataLoader;

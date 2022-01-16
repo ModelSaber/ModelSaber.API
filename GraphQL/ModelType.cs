@@ -44,11 +44,11 @@ namespace ModelSaber.API.GraphQL
                 .Bidirectional()
                 .PageSize(100)
                 .ResolveAsync(context => context.ResolveConnectionAsync(connectionContext => connectionContext.Source?.ModelTags.Select(t => t.Model)!, 
-                    (set, i, u, c) => Task.FromResult(set.If(u.HasValue, x => x.Where(y => y.Date > u!.Value)).TakeLast(i!.Value).ToList()),
-                    (set, i, u, c) => Task.FromResult(set.If(u.HasValue, x => x.Where(y => y.Date > u!.Value)).Take(i!.Value).ToList()),
-                    set => set?.Date,
-                    (set, i, u, c) => Task.FromResult(set.If(u.HasValue, x => x.Where(y => y.Date > u!.Value)).If(i.HasValue, x => x.Take(i!.Value)).Any()),
-                    (set, i, u, c) => Task.FromResult(set.If(u.HasValue, x => x.Where(y => y.Date < u!.Value)).If(i.HasValue, x => x.TakeLast(i!.Value)).Any())));
+                    (set, i, u, c) => Task.FromResult(set.OrderByDescending(t => t.Id).If(u.HasValue, x => x.SkipWhile(y => y.Uuid != u!.Value)).TakeLast(i!.Value).ToList()),
+                    (set, i, u, c) => Task.FromResult(set.OrderBy(t => t.Id).If(u.HasValue, x => x.SkipWhile(y => y.Uuid != u!.Value)).Take(i!.Value).ToList()),
+                    set => set.Uuid,
+                    (set, i, c) => Task.FromResult(set.If(i.HasValue, x => x.Any(y => y.Id > i!.Value))),
+                    (set, i, c) => Task.FromResult(set.If(i.HasValue, x => x.Any(y => y.Id < i!.Value)))));
         }
     }
 
@@ -84,11 +84,11 @@ namespace ModelSaber.API.GraphQL
                 .Bidirectional()
                 .PageSize(100)
                 .ResolveAsync(context => context.ResolveConnectionAsync(connectionContext => connectionContext.Source?.Models.Select(t => t.Model)!, 
-                    (set, i, u, c) => Task.FromResult(set.If(u.HasValue, x => x.Where(y => y.Date < u!.Value)).TakeLast(i!.Value).ToList()),
-                    (set, i, u, c) => Task.FromResult(set.If(u.HasValue, x => x.Where(y => y.Date > u!.Value)).Take(i!.Value).ToList()),
-                    set => set?.Date,
-                    (set, i, u, c) => Task.FromResult(set.If(u.HasValue, x => x.Where(y => y.Date > u!.Value)).If(i.HasValue, x => x.Take(i!.Value)).Any()),
-                    (set, i, u, c) => Task.FromResult(set.If(u.HasValue, x => x.Where(y => y.Date < u!.Value)).If(i.HasValue, x => x.TakeLast(i!.Value)).Any())));
+                    (set, i, u, c) => Task.FromResult(set.OrderByDescending(t => t.Id).If(u.HasValue, x => x.SkipWhile(y => y.Uuid != u!.Value)).TakeLast(i!.Value).ToList()),
+                    (set, i, u, c) => Task.FromResult(set.OrderBy(t => t.Id).If(u.HasValue, x => x.SkipWhile(y => y.Uuid != u!.Value)).Take(i!.Value).ToList()),
+                    set => set.Uuid,
+                    (set, i, c) => Task.FromResult(set.If(i.HasValue, x => x.Any(y => y.Id > i!.Value))),
+                    (set, i, c) => Task.FromResult(set.If(i.HasValue, x => x.Any(y => y.Id < i!.Value)))));
         }
     }
 
@@ -106,9 +106,9 @@ namespace ModelSaber.API.GraphQL
             Func<IResolveConnectionContext<TC>, IEnumerable<TR>> func, 
             Func<IEnumerable<TR>, int?, TU?, CancellationToken, Task<List<TR>>> beforeFunc, 
             Func<IEnumerable<TR>, int?, TU?, CancellationToken, Task<List<TR>>> afterFunc, 
-            Func<TR, TU?> cursorFunc, 
-            Func<IEnumerable<TR>, int?, TU?, CancellationToken, Task<bool>> afterCheckFunc,
-            Func<IEnumerable<TR>, int?, TU?, CancellationToken, Task<bool>> beforeCheckFunc) where TC : class where TU : struct
+            Func<TR, TU> cursorFunc, 
+            Func<IEnumerable<TR>, uint?, CancellationToken, Task<bool>> afterCheckFunc,
+            Func<IEnumerable<TR>, uint?, CancellationToken, Task<bool>> beforeCheckFunc) where TC : class where TU : struct where TR : BaseId
         {
             var first = context.First;
             var afterCursor = Cursor.FromCursor<TU>(context.After);
@@ -116,17 +116,17 @@ namespace ModelSaber.API.GraphQL
             var beforeCursor = Cursor.FromCursor<TU>(context.Before);
             var cancellationToken = context.CancellationToken;
 
-            var getModelsTask = GetListAsync(context, first, afterCursor, last, beforeCursor, cancellationToken, func, beforeFunc, afterFunc);
-            var getNextPageTask = GetNextPageAsync(context, first, afterCursor, cancellationToken, func, afterCheckFunc);
-            var getPreviousPageTask = GetPreviousPageAsync(context, last, beforeCursor, cancellationToken, func, beforeCheckFunc);
+            var list = await GetListAsync(context, first, afterCursor, last, beforeCursor, cancellationToken, func, beforeFunc, afterFunc).ConfigureAwait(false);
+            var getNextPageTask = GetNextPageAsync(context, cancellationToken, func, list, afterCheckFunc);
+            var getPreviousPageTask = GetPreviousPageAsync(context, cancellationToken, func, list, beforeCheckFunc);
             var totalCountTask = Task.FromResult(func(context).Count());
 
-            var (models, nextPage, previousPage, totalCount) = await WaitAll(getModelsTask, getNextPageTask, getPreviousPageTask, totalCountTask).ConfigureAwait(false);
-            var (firstCursor, lastCursor) = Cursor.GetFirstAndLastCursor(models, cursorFunc);
+            var (nextPage, previousPage, totalCount) = await WaitAll(getNextPageTask, getPreviousPageTask, totalCountTask).ConfigureAwait(false);
+            var (firstCursor, lastCursor) = Cursor.GetFirstAndLastCursor(list, cursorFunc);
 
             return new Connection<TR>
             {
-                Edges = models.Select(x => new Edge<TR>
+                Edges = list.Select(x => new Edge<TR>
                 {
                     Cursor = Cursor.ToCursor(cursorFunc(x)),
                     Node = x
@@ -141,23 +141,21 @@ namespace ModelSaber.API.GraphQL
                 TotalCount = totalCount
             };
         }
-        private static Task<bool> GetPreviousPageAsync<TR, TU, TC>(IResolveConnectionContext<TC> dbContext, 
-            int? last, 
-            TU? beforeCursor, 
+        private static Task<bool> GetPreviousPageAsync<TR, TC>(IResolveConnectionContext<TC> dbContext, 
             CancellationToken cancellationToken, 
             Func<IResolveConnectionContext<TC>, IEnumerable<TR>> modelFunc,
-            Func<IEnumerable<TR>, int?, TU?, CancellationToken, Task<bool>> func) where TC : class
-            => func(modelFunc(dbContext), last, beforeCursor, cancellationToken);
+            List<TR> list,
+            Func<IEnumerable<TR>, uint?, CancellationToken, Task<bool>> func) where TR : BaseId
+            => func(modelFunc(dbContext), list.FirstOrDefault()?.Id, cancellationToken);
 
-        private static Task<bool> GetNextPageAsync<TR, TU, TC>(IResolveConnectionContext<TC> dbContext, 
-            int? first, 
-            TU? afterCursor, 
+        private static Task<bool> GetNextPageAsync<TR, TC>(IResolveConnectionContext<TC> dbContext, 
             CancellationToken cancellationToken,
             Func<IResolveConnectionContext<TC>, IEnumerable<TR>> modelFunc,
-            Func<IEnumerable<TR>, int?, TU?, CancellationToken, Task<bool>> func) where TC : class
-            => func(modelFunc(dbContext), first, afterCursor, cancellationToken);
+            List<TR> list,
+            Func<IEnumerable<TR>, uint?, CancellationToken, Task<bool>> func) where TR : BaseId
+            => func(modelFunc(dbContext), list.LastOrDefault()?.Id, cancellationToken);
 
-        private static Task<List<TR>> GetListAsync<TR, TU, TC>(IResolveConnectionContext<TC> context, 
+        private static Task<List<TR>> GetListAsync<TR, TU, TC>(IResolveConnectionContext<TC> dbContext, 
             int? first, 
             TU? afterCursor, 
             int? last, 
@@ -165,15 +163,15 @@ namespace ModelSaber.API.GraphQL
             CancellationToken cancellationToken, 
             Func<IResolveConnectionContext<TC>, IEnumerable<TR>> dbFunc, 
             Func<IEnumerable<TR>, int?, TU?, CancellationToken, Task<List<TR>>> beforeFunc, 
-            Func<IEnumerable<TR>, int?, TU?, CancellationToken, Task<List<TR>>> afterFunc) where TC : class
+            Func<IEnumerable<TR>, int?, TU?, CancellationToken, Task<List<TR>>> afterFunc) where TR : BaseId
             => first.HasValue ?
-                beforeFunc(dbFunc(context), first, afterCursor, cancellationToken) :
-                afterFunc(dbFunc(context), last, beforeCursor, cancellationToken);
+                beforeFunc(dbFunc(dbContext), first, afterCursor, cancellationToken) :
+                afterFunc(dbFunc(dbContext), last, beforeCursor, cancellationToken);
 
-        private static async Task<(T1, T2, T3, T4)> WaitAll<T1, T2, T3, T4>(Task<T1> task1, Task<T2> task2, Task<T3> task3, Task<T4> task4)
+        private static async Task<(T1, T2, T3)> WaitAll<T1, T2, T3>(Task<T1> task1, Task<T2> task2, Task<T3> task3)
         {
-            await Task.WhenAll(task1, task2, task3, task4).ConfigureAwait(false);
-            return (await task1.ConfigureAwait(false), await task2.ConfigureAwait(false), await task3.ConfigureAwait(false), await task4.ConfigureAwait(false));
+            await Task.WhenAll(task1, task2, task3).ConfigureAwait(false);
+            return (await task1.ConfigureAwait(false), await task2.ConfigureAwait(false), await task3.ConfigureAwait(false));
         }
     }
 }

@@ -25,17 +25,17 @@ namespace ModelSaber.API.GraphQL
     {
         public ModelSaberQuery(ModelSaberDbContext dbContext)
         {
-            Field<ListGraphType<UserType>>("users", "The entire user list", null, 
+            Field<ListGraphType<UserType>>("users", "The entire user list", null,
                 context => dbContext.Users.Include(t => t.Models)
                     .ThenInclude(t => t.Model)
                     .ThenInclude(t => t.Tags)
                     .ThenInclude(t => t.Tag)
                     .Include(t => t.UserTags));
-            Field<ModelType>("model", "Single model", new QueryArguments(new QueryArgument<NonNullGraphType<IdGraphType>> {Name = "id"}), context =>
-            {
-                var id = context.GetArgument<Guid>("id");
-                return dbContext.Models.Where(t => t.Uuid == id).IncludeModelData().First();
-            });
+            Field<ModelType>("model", "Single model", new QueryArguments(new QueryArgument<NonNullGraphType<IdGraphType>> { Name = "id" }), context =>
+              {
+                  var id = context.GetArgument<Guid>("id");
+                  return dbContext.Models.Where(t => t.Uuid == id).IncludeModelData().First();
+              });
 
             Field<ListGraphType<StringGraphType>>("modelCursors", "Lists cursors based on pagination size", new QueryArguments(new QueryArgument<IntGraphType> { Name = "size", DefaultValue = 100 }), context =>
             {
@@ -49,36 +49,38 @@ namespace ModelSaber.API.GraphQL
                 .Description("Model list")
                 .Bidirectional()
                 .Argument<TypeType>("modelType", "The model type you want to grab.")
+                .Argument<StringGraphType>("nameFilter", "The name to search for in the models list.")
                 .PageSize(100)
                 .ResolveAsync(context => ResolveModelConnectionAsync(dbContext,
                     d => d.Models,
-                    (set, i, a, c) => set.GetModelAsync(i, a, (TypeEnum?)context.GetArgument(typeof(object), "modelType"), c),
-                    (set, i, a, c) => set.GetModelReverseAsync(i, a, (TypeEnum?)context.GetArgument(typeof(object), "modelType"), c),
+                    (set, i, a, c) => set.GetModelAsync(i, a, context.GetArgument<string>("nameFilter"), (TypeEnum?)context.GetArgument(typeof(object), "modelType"), c),
+                    (set, i, a, c) => set.GetModelReverseAsync(i, a, context.GetArgument<string>("nameFilter"), (TypeEnum?)context.GetArgument(typeof(object), "modelType"), c),
                     model => model.Uuid,
-                    (set, c, id) => set.GetModelNextPageAsync(c,id),
-                    (set, c, id) => set.GetModelPreviousPageAsync(c,id),
+                    (set, c, id) => set.GetModelNextPageAsync(c, id),
+                    (set, c, id) => set.GetModelPreviousPageAsync(c, id),
                     context));
 
             Connection<TagType>()
                 .Name("tags")
                 .Description("You wanted yer tags?")
                 .Bidirectional()
+                .Argument<StringGraphType>("nameFilter", "The name to search for in the tag list.")
                 .PageSize(100)
                 .ResolveAsync(context => ResolveModelConnectionAsync(dbContext,
                     d => d.Tags,
-                    (set, i, a, c) => set.GetTagAsync(i,a,c),
-                    (set, i, a, c) => set.GetTagReverseAsync(i, a, c),
+                    (set, i, a, c) => set.GetTagAsync(i, a, context.GetArgument<string>("nameFilter"), c),
+                    (set, i, a, c) => set.GetTagReverseAsync(i, a, context.GetArgument<string>("nameFilter"), c),
                     model => model.CursorId,
-                    (set, c, id) => set.GetTagNextPageAsync(c,id),
-                    (set, c, id) => set.GetTagPreviousPageAsync(c,id),
+                    (set, c, id) => set.GetTagNextPageAsync(c, id),
+                    (set, c, id) => set.GetTagPreviousPageAsync(c, id),
                     context));
         }
 
-        private async Task<object?> ResolveModelConnectionAsync<TR, TU>(ModelSaberDbContext dbContext, 
-            Func<ModelSaberDbContext, DbSet<TR>> func, 
-            Func<DbSet<TR>, int?, TU?, CancellationToken, Task<List<TR>>> beforeFunc, 
-            Func<DbSet<TR>, int?, TU?, CancellationToken, Task<List<TR>>> afterFunc, 
-            Func<TR, TU> cursorFunc, 
+        private async Task<object?> ResolveModelConnectionAsync<TR, TU>(ModelSaberDbContext dbContext,
+            Func<ModelSaberDbContext, DbSet<TR>> func,
+            Func<DbSet<TR>, int?, TU?, CancellationToken, Task<List<TR>>> beforeFunc,
+            Func<DbSet<TR>, int?, TU?, CancellationToken, Task<List<TR>>> afterFunc,
+            Func<TR, TU> cursorFunc,
             Func<DbSet<TR>, CancellationToken, uint?, Task<bool>> afterCheckFunc,
             Func<DbSet<TR>, CancellationToken, uint?, Task<bool>> beforeCheckFunc,
             IResolveConnectionContext<object?> context) where TR : BaseId where TU : struct
@@ -115,21 +117,29 @@ namespace ModelSaber.API.GraphQL
             };
         }
 
-        private Task<bool> GetPreviousPageAsync<TR>(ModelSaberDbContext dbContext, 
-            CancellationToken cancellationToken, 
+        private Task<bool> GetPreviousPageAsync<TR>(ModelSaberDbContext dbContext,
+            CancellationToken cancellationToken,
             Func<ModelSaberDbContext, DbSet<TR>> modelFunc,
             List<TR> list,
             Func<DbSet<TR>, CancellationToken, uint?, Task<bool>> func) where TR : BaseId
             => func(modelFunc(dbContext), cancellationToken, list.FirstOrDefault()?.Id);
 
-        private Task<bool> GetNextPageAsync<TR>(ModelSaberDbContext dbContext, 
+        private Task<bool> GetNextPageAsync<TR>(ModelSaberDbContext dbContext,
             CancellationToken cancellationToken,
             Func<ModelSaberDbContext, DbSet<TR>> modelFunc,
             List<TR> list,
             Func<DbSet<TR>, CancellationToken, uint?, Task<bool>> func) where TR : BaseId
             => func(modelFunc(dbContext), cancellationToken, list.LastOrDefault()?.Id);
 
-        private Task<List<TR>> GetListAsync<TR, TU>(ModelSaberDbContext dbContext, int? first, TU? afterCursor, int? last, TU? beforeCursor, CancellationToken cancellationToken, Func<ModelSaberDbContext, DbSet<TR>> dbFunc, Func<DbSet<TR>, int?, TU?, CancellationToken, Task<List<TR>>> beforeFunc, Func<DbSet<TR>, int?, TU?, CancellationToken, Task<List<TR>>> afterFunc) where TR : class
+        private Task<List<TR>> GetListAsync<TR, TU>(ModelSaberDbContext dbContext,
+            int? first,
+            TU? afterCursor,
+            int? last,
+            TU? beforeCursor,
+            CancellationToken cancellationToken,
+            Func<ModelSaberDbContext, DbSet<TR>> dbFunc,
+            Func<DbSet<TR>, int?, TU?, CancellationToken, Task<List<TR>>> beforeFunc,
+            Func<DbSet<TR>, int?, TU?, CancellationToken, Task<List<TR>>> afterFunc) where TR : class
             => first.HasValue ?
                 beforeFunc(dbFunc(dbContext), first, afterCursor, cancellationToken) :
                 afterFunc(dbFunc(dbContext), last, beforeCursor, cancellationToken);

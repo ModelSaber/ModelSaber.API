@@ -79,7 +79,8 @@ namespace ModelSaber.API
                 //.AddWebSockets() // TODO update events through websocket how ever the fuck we are going to do that idk yet
                 .AddDataLoader()
                 .AddDocumentCache<MemoryDocumentCache>()
-                .AddGraphTypes(typeof(ModelSaberSchema).Assembly);
+                .AddGraphTypes(typeof(ModelSaberSchema).Assembly)
+                .AddValidationRule<AuthValidationRule>();
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v3", new OpenApiInfo

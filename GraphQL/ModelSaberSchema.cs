@@ -18,6 +18,42 @@ namespace ModelSaber.API.GraphQL
         public ModelSaberSchema(ModelSaberDbContext dbContext, IServiceProvider provider) : base(provider)
         {
             Query = new ModelSaberQuery(dbContext);
+            Mutation = new ModelSaberMutation(dbContext);
+        }
+    }
+
+    public class ModelSaberMutation : ObjectGraphType
+    {
+        public ModelSaberMutation(ModelSaberDbContext dbContext)
+        {
+            Field<ObjectGraphType>("vote", "Modifies votes for a model.", new QueryArguments(new QueryArgument<NonNullGraphType<VoteInputType>> { Name = "voteArgs" }), context =>
+            {
+                var args = context.GetArgument<VoteArgs>("voteArgs");
+                if (args.IsDelete)
+                {
+                    var record = dbContext.Votes.FirstOrDefault(t => args.Platform == "web" ? t.UserId.ToString() == args.Id : t.GameId == args.Id && t.ModelId == args.ModelId);
+                    if(record != null)
+                        dbContext.Votes.Remove(record);
+                }
+                else
+                {
+                    var record = dbContext.Votes.FirstOrDefault(t => args.Platform == "web" ? t.UserId.ToString() == args.Id : t.GameId == args.Id);
+                    if (record != null)
+                        record.DownVote = args.IsDownVote;
+                    else
+                    {
+                        dbContext.Votes.Add(new Vote
+                        {
+                            GameId = args.Platform != "web" ? args.Id : null,
+                            UserId = args.Platform == "web" ? Convert.ToUInt32(args.Id) : null,
+                            DownVote = args.IsDownVote,
+                            ModelId = args.ModelId
+                        });
+                    }
+                    dbContext.SaveChanges();
+                }
+                return null;
+            });
         }
     }
 

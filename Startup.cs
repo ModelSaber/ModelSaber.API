@@ -80,6 +80,7 @@ namespace ModelSaber.API
                 .AddDataLoader()
                 .AddDocumentCache<MemoryDocumentCache>()
                 .AddGraphTypes(typeof(ModelSaberSchema).Assembly)
+                .AddUserContextBuilder<UserContextBuilder>()
                 .AddValidationRule<AuthValidationRule>();
             services.AddSwaggerGen(c =>
             {

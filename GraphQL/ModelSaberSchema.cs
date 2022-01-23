@@ -26,13 +26,13 @@ namespace ModelSaber.API.GraphQL
     {
         public ModelSaberMutation(ModelSaberDbContext dbContext)
         {
-            Field<ObjectGraphType>("vote", "Modifies votes for a model.", new QueryArguments(new QueryArgument<NonNullGraphType<VoteInputType>> { Name = "voteArgs" }), context =>
+            Field<IntGraphType>("vote", "Modifies votes for a model.", new QueryArguments(new QueryArgument<NonNullGraphType<VoteInputType>> { Name = "voteArgs" }), context =>
             {
                 var args = context.GetArgument<VoteArgs>("voteArgs");
                 if (args.IsDelete)
                 {
                     var record = dbContext.Votes.FirstOrDefault(t => args.Platform == "web" ? t.UserId.ToString() == args.Id : t.GameId == args.Id && t.ModelId == args.ModelId);
-                    if(record != null)
+                    if (record != null)
                         dbContext.Votes.Remove(record);
                 }
                 else
@@ -52,7 +52,7 @@ namespace ModelSaber.API.GraphQL
                     }
                     dbContext.SaveChanges();
                 }
-                return null;
+                return 0;
             });
         }
     }

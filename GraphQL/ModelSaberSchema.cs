@@ -8,6 +8,7 @@ using GraphQL.Builders;
 using GraphQL.Types;
 using GraphQL.Types.Relay.DataObjects;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using ModelSaber.Database;
 using ModelSaber.Models;
 
@@ -18,26 +19,27 @@ namespace ModelSaber.API.GraphQL
         public ModelSaberSchema(ModelSaberDbContext dbContext, IServiceProvider provider) : base(provider)
         {
             Query = new ModelSaberQuery(dbContext);
-            Mutation = new ModelSaberMutation(dbContext);
+            Mutation = new ModelSaberMutation(provider);
         }
     }
 
     public class ModelSaberMutation : ObjectGraphType
     {
-        public ModelSaberMutation(ModelSaberDbContext dbContext)
+        public ModelSaberMutation(IServiceProvider provider)
         {
             Field<IntGraphType>("vote", "Modifies votes for a model.", new QueryArguments(new QueryArgument<NonNullGraphType<VoteInputType>> { Name = "voteArgs" }), context =>
             {
                 var args = context.GetArgument<VoteArgs>("voteArgs");
+                //this is just a jank workaround for some reason it does not like dependency injection right here
+                using var dbContext = new ModelSaberDbContext();
+                var record = dbContext.Votes.ToList().FirstOrDefault(t => args.Platform == "web" ? t.UserId.ToString() == args.Id : t.GameId == args.Id && t.ModelId == args.ModelId);
                 if (args.IsDelete)
                 {
-                    var record = dbContext.Votes.FirstOrDefault(t => args.Platform == "web" ? t.UserId.ToString() == args.Id : t.GameId == args.Id && t.ModelId == args.ModelId);
                     if (record != null)
                         dbContext.Votes.Remove(record);
                 }
                 else
                 {
-                    var record = dbContext.Votes.FirstOrDefault(t => args.Platform == "web" ? t.UserId.ToString() == args.Id : t.GameId == args.Id);
                     if (record != null)
                         record.DownVote = args.IsDownVote;
                     else
@@ -50,8 +52,9 @@ namespace ModelSaber.API.GraphQL
                             ModelId = args.ModelId
                         });
                     }
-                    dbContext.SaveChanges();
                 }
+                dbContext.SaveChanges();
+
                 return 0;
             });
         }

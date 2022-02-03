@@ -27,8 +27,9 @@ namespace ModelSaber.API.GraphQL
             // ReSharper disable once InvertIf
             if (!string.IsNullOrWhiteSpace(auth))
             {
-                using var dbContext = _provider.GetRequiredService<ModelSaberDbContext>();
-                var token = Convert.FromBase64String(auth.Remove(auth.IndexOf(" ", StringComparison.Ordinal) + 1));
+                using var dbContext = _provider.CreateScope().ServiceProvider.GetService<ModelSaberDbContext>();
+                var index = auth.IndexOf(" ", StringComparison.Ordinal) + 1;
+                var token = Convert.FromBase64String(auth.Remove(0, index));
                 var tokens = dbContext.OAuthTokens.ToList();
                 var dbToken = tokens.FirstOrDefault(t => t.Token.SequenceEqual(token));
                 ret["auth"] = dbToken;

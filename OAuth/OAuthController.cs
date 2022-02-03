@@ -19,12 +19,20 @@ namespace ModelSaber.API.OAuth
             _dbContext = dbContext;
         }
 
-        [HttpPost("/token")]
-        public IActionResult Token([FromForm] OAuthTokenRequest request)
+        [HttpPost("token")]
+        public IActionResult Token([FromForm] string grant_type, [FromForm] string client_id, [FromForm] string client_secret, [FromForm] string? scope)
         {
+            var request = new OAuthTokenRequest
+            {
+                ClientId = client_id,
+                ClientSecret = client_secret,
+                Scope = scope,
+                GrantType = grant_type
+            };
+            Console.WriteLine(JsonConvert.SerializeObject(request));
             if (!OAuthTokenResponse.ValidateParameters(request, out var missingParam)) return BadRequest(OAuthTokenResponse.MissingParamRequest(missingParam));
             var clientId = Guid.Parse(request.ClientId);
-            switch (request.AuthorizationCode)
+            switch (request.GrantType)
             {
                 case "client_credentials":
                     var client = _dbContext.OAuthClients.SingleOrDefault(e => e.ClientId == clientId);
@@ -41,7 +49,7 @@ namespace ModelSaber.API.OAuth
                     return Ok(OAuthTokenResponse.CreateSuccessResponse(token));
                 case "authorization_code":
                 case "password":
-                    return BadRequest(OAuthTokenResponse.UnsupportedGrantType(request.AuthorizationCode));
+                    return BadRequest(OAuthTokenResponse.UnsupportedGrantType(request.GrantType));
                 default:
                     return BadRequest(OAuthTokenResponse.InvalidGrant());
             }
@@ -53,9 +61,9 @@ namespace ModelSaber.API.OAuth
         public static bool ValidateParameters(OAuthTokenRequest request, out string missingParam)
         {
             missingParam = "";
-            if (string.IsNullOrWhiteSpace(request.AuthorizationCode))
+            if (string.IsNullOrWhiteSpace(request.GrantType))
             {
-                missingParam = "authorization_code";
+                missingParam = "grant_type";
                 return false;
             }
 
@@ -80,7 +88,7 @@ namespace ModelSaber.API.OAuth
         }
 
         #region OAuthErrorResponse
-        public static OAuthErrorResponse MissingParamRequest(string missingParam) => MakeErrorResponse("invalid_request", $"The request is missing a required parameter on the server. Param name: ${missingParam}");
+        public static OAuthErrorResponse MissingParamRequest(string missingParam) => MakeErrorResponse("invalid_request", $"The request is missing a required parameter on the server. Param name: {missingParam}");
         public static OAuthErrorResponse InvalidClient(string? error = null) => MakeErrorResponse("invalid_client", error);
         public static OAuthErrorResponse InvalidGrant() => MakeErrorResponse("invalid_grant");
         public static OAuthErrorResponse UnauthorizedClient() => MakeErrorResponse("unauthorized_client");
@@ -95,13 +103,13 @@ namespace ModelSaber.API.OAuth
     public class OAuthTokenRequest
     {
         [JsonProperty("client_id")]
-        public string ClientId { get; set; }
+        public string? ClientId { get; set; }
         [JsonProperty("client_secret")]
-        public string ClientSecret { get; set; }
-        [JsonProperty("authorization_code")]
-        public string AuthorizationCode { get; set; }
+        public string? ClientSecret { get; set; }
+        [JsonProperty("grant_type")]
+        public string? GrantType { get; set; }
         [JsonProperty("scope")]
-        public string Scope { get; set; }
+        public string? Scope { get; set; }
     }
 
     public struct OAuthSuccessResponse

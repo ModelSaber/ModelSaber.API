@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using GraphQL.Builders;
 using GraphQL.Types;
 using GraphQL.Types.Relay.DataObjects;
+using Microsoft.AspNetCore.WebUtilities;
 using ModelSaber.Models;
 
 namespace ModelSaber.API.GraphQL
@@ -24,6 +25,7 @@ namespace ModelSaber.API.GraphQL
             Field(o => o.Type, type: typeof(TypeType));
             Field(o => o.Thumbnail);
             Field(o => o.Uuid);
+            Field("cursor", o => WebEncoders.Base64UrlEncode(o.Uuid.ToByteArray()));
             Field(o => o.DownloadPath);
             Field(o => o.UserId, type: typeof(ULongGraphType));
             Field<ListGraphType<TagType>>("tags", resolve: context => context.Source?.Tags.Select(t => t.Tag));
@@ -77,6 +79,7 @@ namespace ModelSaber.API.GraphQL
             Field(o => o.Level, type: typeof(UserLevelType));
             Field(o => o.Name, type: typeof(StringGraphType));
             Field(o => o.Avatar, true, typeof(StringGraphType));
+            Field(o => o.Id);
             Field<ListGraphType<UserTagType>>("userTags", resolve: context => context.Source?.UserTags.ToList());
             Connection<ModelType>()
                 .Name("models")

@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.WebUtilities;
 
 namespace ModelSaber.API.GraphQL
 {
@@ -37,7 +38,7 @@ namespace ModelSaber.API.GraphQL
 
             if (type == typeof(Guid))
             {
-                return (T)(object)Guid.Parse(decodedValue);
+                return (T)(object)new Guid(WebEncoders.Base64UrlDecode(cursor));
             }
 
             return (T)Convert.ChangeType(decodedValue, type, CultureInfo.InvariantCulture);
@@ -75,11 +76,16 @@ namespace ModelSaber.API.GraphQL
                 return Base64Encode(dateTimeOffset.ToUniversalTime().ToString("s", CultureInfo.InvariantCulture));
             }
 
+            if (value is Guid guid)
+            {
+                return WebEncoders.Base64UrlEncode(guid.ToByteArray());
+            }
+
             return Base64Encode(value.ToString()!);
         }
 
-        private static string Base64Decode(string value) => Encoding.UTF8.GetString(Convert.FromBase64String(value));
+        private static string Base64Decode(string value) => Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(value));
 
-        private static string Base64Encode(string value) => Convert.ToBase64String(Encoding.UTF8.GetBytes(value));
+        private static string Base64Encode(string value) => WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(value));
     }
 }

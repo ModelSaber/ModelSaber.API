@@ -70,15 +70,17 @@ namespace ModelSaber.API.GraphQL
                     .ThenInclude(t => t.Tags)
                     .ThenInclude(t => t.Tag)
                     .Include(t => t.UserTags));
-            Field<ModelType>("model", "Single model", new QueryArguments(new QueryArgument<NonNullGraphType<IdGraphType>> { Name = "id" }), context =>
+            Field<ModelType>("model", "Single model", new QueryArguments(new QueryArgument<NonNullGraphType<StringGraphType>> { Name = "id" }), context =>
               {
-                  var id = context.GetArgument<Guid>("id");
-                  return dbContext.Models.Where(t => t.Uuid == id).IncludeModelData().First();
+                  var id = context.GetArgument<string>("id");
+                  var guid = Cursor.FromCursor<Guid>(id);
+                  return dbContext.Models.Where(t => t.Uuid == guid).IncludeModelData().First();
               });
 
-            Field<ListGraphType<StringGraphType>>("modelCursors", "Lists cursors based on pagination size", new QueryArguments(new QueryArgument<IntGraphType> { Name = "size", DefaultValue = 100 }), context =>
+            Field<ListGraphType<StringGraphType>>("modelCursors", "Lists cursors based on pagination size", new QueryArguments(new QueryArgument<IntGraphType> { Name = "size", DefaultValue = 100 }, new QueryArgument<StringGraphType>{Name = "order", DefaultValue = "asc", Description = "sort order for models either 'asc' or 'desc'"}), context =>
             {
-                var modelCursors = dbContext.Models.ToList().Select(t => t.Uuid).Select(Cursor.ToCursor).ToList();
+                var models = context.GetArgument<string>("order") == "asc" ? dbContext.Models.OrderBy(t => t.Id) : dbContext.Models.OrderByDescending(t => t.Id);
+                var modelCursors = models.ToList().Select(t => t.Uuid).Select(Cursor.ToCursor).ToList();
                 var size = context.GetArgument<int>("size");
                 return modelCursors.Chunk(size).Select(t => t.Last());
             });

@@ -17,4 +17,4 @@ This contains controllers for quest models
 
 ## GraphQL
 
-#### https://localhost:44300/voyager - Any GraphQL endpoint documentation will end up here.
+#### https://apimodelsaber.rainemods.io/voyager - Any GraphQL endpoint documentation will end up here.

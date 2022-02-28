@@ -103,6 +103,21 @@ namespace ModelSaber.API.GraphQL
         }
     }
 
+    public sealed class VoteType : ObjectGraphType<ModelVoteCondensed>
+    {
+        public VoteType()
+        {
+            Field(o => o.Down, type: typeof(BooleanGraphType));
+            Field(o => o.Count, type: typeof(IntGraphType));
+        }
+    }
+
+    public class ModelVoteCondensed
+    {
+        public bool Down { get; set; }
+        public int Count { get; set; }
+    }
+
     public static class GQLPaginationExtension
     {
         public static async Task<object?> ResolveConnectionAsync<TR, TU, TC>(this IResolveConnectionContext<TC> context, 

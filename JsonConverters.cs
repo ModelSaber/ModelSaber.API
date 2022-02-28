@@ -3,37 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using JsonSerializer = Newtonsoft.Json.JsonSerializer;
 
 namespace ModelSaber.API
 {
-    [Obsolete("Replace with System.Text.Json")]
-    public class JsonNetLongConverter : JsonConverter
-    {
-        public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
-        {
-            var t = JToken.FromObject(value?.ToString() ?? string.Empty);
-            t.WriteTo(writer);
-        }
-
-        public override object ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
-        {
-            return objectType switch
-            {
-                { } t when t == typeof(ulong) => Convert.ToUInt64(reader.Value),
-                { } t when t == typeof(long) => Convert.ToInt64(reader.Value),
-                _ => 0,
-            };
-        }
-
-        public override bool CanConvert(Type objectType)
-        {
-            return objectType == typeof(ulong) || objectType == typeof(long);
-        }
-    }
-
     public class JsonConverters
     {
         public static System.Text.Json.Serialization.JsonConverter[] Converters = { new UlongJsonConverter(), new NullableUlongJsonConverter() };

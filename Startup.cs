@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Serialization;
 using GraphQL;
 using GraphQL.Caching;
 using GraphQL.DataLoader;
 using GraphQL.Execution;
+using GraphQL.Instrumentation;
 using GraphQL.MicrosoftDI;
 using GraphQL.Server;
 using Microsoft.AspNetCore.Builder;
@@ -16,7 +18,9 @@ using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 using ModelSaber.API.GraphQL;
 using ModelSaber.Database;
+using ModelSaber.API.Helpers;
 using Newtonsoft.Json;
+using Prometheus;
 using GraphQLBuilderExtensions = GraphQL.MicrosoftDI.GraphQLBuilderExtensions;
 
 namespace ModelSaber.API
@@ -44,22 +48,28 @@ namespace ModelSaber.API
                     builder.AllowAnyHeader().WithMethods("GET", "POST").AllowAnyOrigin();
                 });
             });
+            services.Configure<AppSettings>(Configuration.GetSection("AppSettings"));
             services.AddDbContext<ModelSaberDbContext>(ServiceLifetime.Singleton);
             services.AddSingleton<ModelSaberSchema>();
             services.AddSingleton(_ => new MemoryDocumentCache(new MemoryDocumentCacheOptions
             {
                 SizeLimit = CacheSize,
-                SlidingExpiration = new TimeSpan(1, 0, 0, 0),
+                SlidingExpiration = new TimeSpan(0, 1, 0, 0),
                 ExpirationScanFrequency = new TimeSpan(0,0,10,0)
             }));
             services.AddRouting(options => options.LowercaseUrls = true);
             // TODO change over to SystemTextJson to force same converters between GQL and REST
-            services.AddControllers().AddNewtonsoftJson(options =>
+            services.AddControllers().AddJsonOptions(options =>
             {
-                options.SerializerSettings.Converters.Add(new JsonNetLongConverter());
-                options.SerializerSettings.DateTimeZoneHandling = DateTimeZoneHandling.Utc;
-                options.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
+                options.JsonSerializerOptions.Converters.AddRange(JsonConverters.Converters);
+                options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
             });
+            //    .AddNewtonsoftJson(options =>
+            //{
+            //    options.SerializerSettings.Converters.Add(new JsonNetLongConverter());
+            //    options.SerializerSettings.DateTimeZoneHandling = DateTimeZoneHandling.Utc;
+            //    options.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
+            //});
             GraphQLBuilderExtensions.AddGraphQL(services)
                 .AddServer(true)
                 .AddSchema<ModelSaberSchema>()
@@ -81,7 +91,8 @@ namespace ModelSaber.API
                 .AddDocumentCache<MemoryDocumentCache>()
                 .AddGraphTypes(typeof(ModelSaberSchema).Assembly)
                 .AddUserContextBuilder<UserContextBuilder>()
-                .AddValidationRule<AuthValidationRule>();
+                .AddValidationRule<AuthValidationRule>()
+                .AddMiddleware<InstrumentFieldsMiddleware>();
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v3", new OpenApiInfo
@@ -118,10 +129,14 @@ namespace ModelSaber.API
 
             app.UseRouting();
 
+            app.UseHttpMetrics();
+            app.UseMetricServer();
+
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllerRoute("default", "api/{controller}/{action=Index}/{id?}");
             });
+
         }
     }
 

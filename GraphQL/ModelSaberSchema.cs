@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using GraphQL;
@@ -70,6 +72,16 @@ namespace ModelSaber.API.GraphQL
                     .ThenInclude(t => t.Tags)
                     .ThenInclude(t => t.Tag)
                     .Include(t => t.UserTags));
+
+            Field<ListGraphType<VoteType>>("modelVotes", "Gets the vote stats for the model.", new QueryArguments(new QueryArgument<StringGraphType> { Name = "id" }), context =>
+            {
+                var id = context.GetArgument<string>("id");
+                var guid = Cursor.FromCursor<Guid>(id);
+                var votes = dbContext.Models.Include(t => t.Votes).Where(t => t.Uuid == guid).SelectMany(t => t.Votes).ToList();
+                Console.WriteLine(JsonSerializer.Serialize(votes, new JsonSerializerOptions { ReferenceHandler = ReferenceHandler.IgnoreCycles }));
+                return votes.GroupBy(t => t.DownVote).Select(t => new ModelVoteCondensed { Down = t.Key, Count = t.Count(f => f.Model.Uuid == guid) });
+            });
+
             Field<ModelType>("model", "Single model", new QueryArguments(new QueryArgument<NonNullGraphType<StringGraphType>> { Name = "id" }), context =>
               {
                   var id = context.GetArgument<string>("id");
@@ -77,13 +89,13 @@ namespace ModelSaber.API.GraphQL
                   return dbContext.Models.Where(t => t.Uuid == guid).IncludeModelData().First();
               });
 
-            Field<ListGraphType<StringGraphType>>("modelCursors", "Lists cursors based on pagination size", new QueryArguments(new QueryArgument<IntGraphType> { Name = "size", DefaultValue = 100 }, new QueryArgument<StringGraphType>{Name = "order", DefaultValue = "asc", Description = "sort order for models either 'asc' or 'desc'"}), context =>
-            {
-                var models = context.GetArgument<string>("order") == "asc" ? dbContext.Models.OrderBy(t => t.Id) : dbContext.Models.OrderByDescending(t => t.Id);
-                var modelCursors = models.ToList().Select(t => t.Uuid).Select(Cursor.ToCursor).ToList();
-                var size = context.GetArgument<int>("size");
-                return modelCursors.Chunk(size).Select(t => t.Last());
-            });
+            Field<ListGraphType<StringGraphType>>("modelCursors", "Lists cursors based on pagination size", new QueryArguments(new QueryArgument<IntGraphType> { Name = "size", DefaultValue = 100 }, new QueryArgument<StringGraphType> { Name = "order", DefaultValue = "asc", Description = "sort order for models either 'asc' or 'desc'" }), context =>
+               {
+                   var models = context.GetArgument<string>("order") == "asc" ? dbContext.Models.OrderBy(t => t.Id) : dbContext.Models.OrderByDescending(t => t.Id);
+                   var modelCursors = models.ToList().Select(t => t.Uuid).Select(Cursor.ToCursor).ToList();
+                   var size = context.GetArgument<int>("size");
+                   return modelCursors.Chunk(size).Select(t => t.Last());
+               });
 
             Connection<ModelType>()
                 .Name("models")

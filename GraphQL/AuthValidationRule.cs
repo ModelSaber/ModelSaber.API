@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Threading.Tasks;
 using GraphQL.Language.AST;
+using GraphQL.Types;
 using GraphQL.Validation;
 using Microsoft.Extensions.DependencyInjection;
 using ModelSaber.Database;
@@ -31,9 +32,8 @@ namespace ModelSaber.API.GraphQL
                         context.ReportError(new ValidationError(context.Document.OriginalQuery!, "6.1.1", $"Authorization is required to access {operation.Name}", operation) { Code = "auth-required" });
                         return;
                     }
-
-                    var dbToken = (OAuthToken?)context.UserContext["auth"];
-                    if (dbToken == null || dbToken.IsExpired())
+                    
+                    if (CheckAuth(context.UserContext["auth"], dbToken => dbToken.IsExpired()))
                         context.ReportError(new ValidationError(context.Document.OriginalQuery!, "6.1.1", $"Authorization is required to access {operation.Name}", operation) { Code = "auth-required" });
                 }),
                 new MatchingNodeVisitor<Field>((field, context) =>
@@ -46,13 +46,20 @@ namespace ModelSaber.API.GraphQL
                         return;
                     }
                     
-                    var dbToken = (OAuthToken?)context.UserContext["auth"]; 
-                    if (fieldDef.RequirePermission().ToBool() && (dbToken == null || dbToken.IsExpired() || !fieldDef.HasPermission(dbToken.GetScopes()).ToBool()))
+                    if (fieldDef.RequirePermission().ToBool() && CheckAuth(context.UserContext["auth"], dbToken => dbToken.IsExpired() || fieldDef.HasPermission(dbToken.GetScopes()).ToBool()))
                         context.ReportError(new ValidationError(context.Document.OriginalQuery!, "6.1.1", $"Authorization is required to access {field.Name}", field) { Code = "auth-required" });
                 })
             );
 
             return Task.FromResult(nodeVisitor as INodeVisitor);
         }
+
+        internal static bool CheckAuth(object? context, Func<OAuthToken,bool> checkFunc) =>
+            context != null && context switch
+            {
+                OAuthToken token => checkFunc(token),
+                UserLogons _ => true,
+                _ => false
+            };
     }
 }

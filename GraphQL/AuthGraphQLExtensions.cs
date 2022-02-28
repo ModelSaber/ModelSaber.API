@@ -21,7 +21,11 @@ namespace ModelSaber.API.GraphQL
 
         public static bool? HasPermission(this IProvideMetadata type, string permission) => type.GetMetadata<IEnumerable<string>>(PermissionsKey)?.Contains(permission);
 
-        public static bool? HasPermission(this IProvideMetadata type, IEnumerable<string> permissions) => permissions.Any(t => type.HasPermission(t).ToBool());
+        public static bool? HasPermission(this IProvideMetadata type, IEnumerable<string> permissions)
+        {
+            var enumerable = permissions as string[] ?? permissions.ToArray();
+            return !enumerable.Any() || enumerable.Any(t => type.HasPermission(t).ToBool());
+        }
 
         public static bool IsAuthenticated(this ValidationContext context) => context.UserContext.ContainsKey("auth") && !string.IsNullOrWhiteSpace(context.UserContext["auth"]?.ToString());
         

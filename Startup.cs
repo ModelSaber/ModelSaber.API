@@ -9,6 +9,7 @@ using GraphQL.Execution;
 using GraphQL.Instrumentation;
 using GraphQL.MicrosoftDI;
 using GraphQL.Server;
+using GraphQL.Validation.Complexity;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -22,6 +23,7 @@ using ModelSaber.API.Helpers;
 using Newtonsoft.Json;
 using Prometheus;
 using GraphQLBuilderExtensions = GraphQL.MicrosoftDI.GraphQLBuilderExtensions;
+using GraphQLServiceLifetime = GraphQL.DI.ServiceLifetime;
 
 namespace ModelSaber.API
 {
@@ -92,7 +94,8 @@ namespace ModelSaber.API
                 .AddGraphTypes(typeof(ModelSaberSchema).Assembly)
                 .AddUserContextBuilder<UserContextBuilder>()
                 .AddValidationRule<AuthValidationRule>()
-                .AddMiddleware<InstrumentFieldsMiddleware>();
+                .AddMiddleware<MetricsFieldMiddleware>(true, GraphQLServiceLifetime.Singleton)
+                .AddComplexityAnalyzer<ComplexityAnalyzer>();
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v3", new OpenApiInfo

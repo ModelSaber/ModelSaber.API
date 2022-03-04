@@ -51,7 +51,8 @@ namespace ModelSaber.API
                 });
             });
             services.Configure<AppSettings>(Configuration.GetSection("AppSettings"));
-            services.AddDbContext<ModelSaberDbContext>(ServiceLifetime.Singleton);
+            services.AddDbContext<ModelSaberDbContext>();
+            services.AddSingleton<ModelSaberDbContextLeaser>();
             services.AddSingleton<ModelSaberSchema>();
             services.AddSingleton(_ => new MemoryDocumentCache(new MemoryDocumentCacheOptions
             {
@@ -60,18 +61,11 @@ namespace ModelSaber.API
                 ExpirationScanFrequency = new TimeSpan(0,0,10,0)
             }));
             services.AddRouting(options => options.LowercaseUrls = true);
-            // TODO change over to SystemTextJson to force same converters between GQL and REST
             services.AddControllers().AddJsonOptions(options =>
             {
                 options.JsonSerializerOptions.Converters.AddRange(JsonConverters.Converters);
                 options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
             });
-            //    .AddNewtonsoftJson(options =>
-            //{
-            //    options.SerializerSettings.Converters.Add(new JsonNetLongConverter());
-            //    options.SerializerSettings.DateTimeZoneHandling = DateTimeZoneHandling.Utc;
-            //    options.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
-            //});
             GraphQLBuilderExtensions.AddGraphQL(services)
                 .AddServer(true)
                 .AddSchema<ModelSaberSchema>()

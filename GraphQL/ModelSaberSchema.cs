@@ -18,22 +18,22 @@ namespace ModelSaber.API.GraphQL
 {
     public class ModelSaberSchema : Schema
     {
-        public ModelSaberSchema(ModelSaberDbContext dbContext, IServiceProvider provider) : base(provider)
+        public ModelSaberSchema(ModelSaberDbContextLeaser dbContextLeaser, IServiceProvider provider) : base(provider)
         {
-            Query = new ModelSaberQuery(dbContext);
-            Mutation = new ModelSaberMutation(provider);
+            Query = new ModelSaberQuery(dbContextLeaser);
+            Mutation = new ModelSaberMutation(dbContextLeaser);
         }
     }
 
     public class ModelSaberMutation : ObjectGraphType
     {
-        public ModelSaberMutation(IServiceProvider provider)
+        public ModelSaberMutation(ModelSaberDbContextLeaser dbContextLeaser)
         {
             Field<IntGraphType>("vote", "Modifies votes for a model.", new QueryArguments(new QueryArgument<NonNullGraphType<VoteInputType>> { Name = "voteArgs" }), context =>
             {
                 var args = context.GetArgument<VoteArgs>("voteArgs");
                 //this is just a jank workaround for some reason it does not like dependency injection right here
-                using var dbContext = new ModelSaberDbContext();
+                using var dbContext = dbContextLeaser.GetContext();
                 var record = dbContext.Votes.ToList().FirstOrDefault(t => args.Platform == "web" ? t.UserId.ToString() == args.Id : t.GameId == args.Id && t.ModelId == args.ModelId);
                 if (args.IsDelete)
                 {
@@ -64,10 +64,10 @@ namespace ModelSaber.API.GraphQL
 
     public class ModelSaberQuery : ObjectGraphType
     {
-        public ModelSaberQuery(ModelSaberDbContext dbContext)
+        public ModelSaberQuery(ModelSaberDbContextLeaser dbContextLeaser)
         {
             Field<ListGraphType<UserType>>("users", "The entire user list", null,
-                context => dbContext.Users.Include(t => t.Models)
+                context => dbContextLeaser.GetContext().Users.Include(t => t.Models)
                     .ThenInclude(t => t.Model)
                     .ThenInclude(t => t.Tags)
                     .ThenInclude(t => t.Tag)
@@ -77,25 +77,26 @@ namespace ModelSaber.API.GraphQL
             {
                 var id = context.GetArgument<string>("id");
                 var guid = Cursor.FromCursor<Guid>(id);
-                var votes = dbContext.Models.Include(t => t.Votes).Where(t => t.Uuid == guid).SelectMany(t => t.Votes).ToList();
+                var votes = dbContextLeaser.GetContext().Models.Include(t => t.Votes).Where(t => t.Uuid == guid).SelectMany(t => t.Votes).ToList();
                 Console.WriteLine(JsonSerializer.Serialize(votes, new JsonSerializerOptions { ReferenceHandler = ReferenceHandler.IgnoreCycles }));
                 return votes.GroupBy(t => t.DownVote).Select(t => new ModelVoteCondensed { Down = t.Key, Count = t.Count(f => f.Model.Uuid == guid) });
             });
 
             Field<ModelType>("model", "Single model", new QueryArguments(new QueryArgument<NonNullGraphType<StringGraphType>> { Name = "id" }), context =>
-              {
-                  var id = context.GetArgument<string>("id");
-                  var guid = Cursor.FromCursor<Guid>(id);
-                  return dbContext.Models.Where(t => t.Uuid == guid).IncludeModelData().First();
-              });
+            {
+                var id = context.GetArgument<string>("id");
+                var guid = Cursor.FromCursor<Guid>(id);
+                return dbContextLeaser.GetContext().Models.Where(t => t.Uuid == guid).IncludeModelData().First();
+            });
 
             Field<ListGraphType<StringGraphType>>("modelCursors", "Lists cursors based on pagination size", new QueryArguments(new QueryArgument<IntGraphType> { Name = "size", DefaultValue = 100 }, new QueryArgument<StringGraphType> { Name = "order", DefaultValue = "asc", Description = "sort order for models either 'asc' or 'desc'" }), context =>
-               {
-                   var models = context.GetArgument<string>("order") == "asc" ? dbContext.Models.OrderBy(t => t.Id) : dbContext.Models.OrderByDescending(t => t.Id);
-                   var modelCursors = models.ToList().Select(t => t.Uuid).Select(Cursor.ToCursor).ToList();
-                   var size = context.GetArgument<int>("size");
-                   return modelCursors.Chunk(size).Select(t => t.Last());
-               });
+            {
+                using var dbContext = dbContextLeaser.GetContext();
+                var models = context.GetArgument<string>("order") == "asc" ? dbContext.Models.OrderBy(t => t.Id) : dbContext.Models.OrderByDescending(t => t.Id);
+                var modelCursors = models.ToList().Select(t => t.Uuid).Select(Cursor.ToCursor).ToList();
+                var size = context.GetArgument<int>("size");
+                return modelCursors.Chunk(size).Select(t => t.Last());
+            });
 
             Connection<ModelType>()
                 .Name("models")
@@ -104,7 +105,7 @@ namespace ModelSaber.API.GraphQL
                 .Argument<TypeType>("modelType", "The model type you want to grab.")
                 .Argument<StringGraphType>("nameFilter", "The name to search for in the models list.")
                 .PageSize(100)
-                .ResolveAsync(context => ResolveModelConnectionAsync(dbContext,
+                .ResolveAsync(context => ResolveModelConnectionAsync(dbContextLeaser.GetContext(),
                     d => d.Models,
                     (set, i, a, c) => set.GetModelAsync(i, a, context.GetArgument<string>("nameFilter"), (TypeEnum?)context.GetArgument(typeof(object), "modelType"), c),
                     (set, i, a, c) => set.GetModelReverseAsync(i, a, context.GetArgument<string>("nameFilter"), (TypeEnum?)context.GetArgument(typeof(object), "modelType"), c),
@@ -119,7 +120,7 @@ namespace ModelSaber.API.GraphQL
                 .Bidirectional()
                 .Argument<StringGraphType>("nameFilter", "The name to search for in the tag list.")
                 .PageSize(100)
-                .ResolveAsync(context => ResolveModelConnectionAsync(dbContext,
+                .ResolveAsync(context => ResolveModelConnectionAsync(dbContextLeaser.GetContext(),
                     d => d.Tags,
                     (set, i, a, c) => set.GetTagAsync(i, a, context.GetArgument<string>("nameFilter"), c),
                     (set, i, a, c) => set.GetTagReverseAsync(i, a, context.GetArgument<string>("nameFilter"), c),

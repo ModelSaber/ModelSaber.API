@@ -103,7 +103,7 @@ namespace ModelSaber.API.GraphQL
                 .Description("Model list")
                 .Bidirectional()
                 .Argument<TypeType>("modelType", "The model type you want to grab.")
-                .Argument<StringGraphType>("nameFilter", "The name to search for in the models list.")
+                .Argument<NonNullGraphType<StringGraphType>>("nameFilter", "The name to search for in the models list. (can be empty string)")
                 .PageSize(100)
                 .ResolveAsync(context => ResolveModelConnectionAsync(dbContextLeaser.GetContext(),
                     d => d.Models,

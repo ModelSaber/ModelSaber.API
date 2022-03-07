@@ -63,11 +63,11 @@ namespace ModelSaber.API.GraphQL
                 foreach (var perfRecords in PerfRecords)
                 {
                     var perfRecord = perfRecords.First(t => t.Category == "operation");
-                    var subject = perfRecord.Subject!;
+                    var subject = perfRecord.Subject ?? "undefined";
                     if (subjects.Contains(subject)) continue;
                     subjects.Add(subject);
                     OperationSummary.WithLabels(subject).Observe(perfRecord.Duration);
-                    var docDur = perfRecords!.Where(t => t.Category == "document").Sum(t => t.Duration);
+                    var docDur = perfRecords.Where(t => t.Category == "document").Sum(t => t.Duration);
                     DocumentSummary.WithLabels(subject).Observe(docDur);
                 }
                 PerfRecords.Clear();
@@ -82,12 +82,13 @@ namespace ModelSaber.API.GraphQL
             lock (_lock)
             {
                 var rec = context.Metrics.Finish();
-                var perfRecord = rec!.First(t => t.Category == "operation");
-                var subject = perfRecord.Subject!;
-                var docDur = rec!.Where(t => t.Category == "document").Sum(t => t.Duration);
+                if (rec == null) return ret;
+                var perfRecord = rec.First(t => t.Category == "operation");
+                var subject = perfRecord.Subject ?? "undefined";
+                var docDur = rec.Where(t => t.Category == "document").Sum(t => t.Duration);
                 DocumentCounter.WithLabels(subject).Set(docDur);
                 OperationCounter.WithLabels(subject).Set(perfRecord.Duration);
-                PerfRecords.Add(rec!);
+                PerfRecords.Add(rec);
             }
 
             return ret;

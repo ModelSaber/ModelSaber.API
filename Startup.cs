@@ -71,7 +71,7 @@ namespace ModelSaber.API
                 .AddSchema<ModelSaberSchema>()
                 .ConfigureExecution(options =>
                 {
-                    options.EnableMetrics = Environment.IsDevelopment();
+                    options.EnableMetrics = true;
                     var logger = options.RequestServices?.GetRequiredService<ILogger<Startup>>();
                     options.UnhandledExceptionDelegate = ctx =>
                         logger?.LogError("{Error} occurred", ctx.OriginalException.Message);

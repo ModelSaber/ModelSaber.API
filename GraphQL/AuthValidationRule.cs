@@ -33,7 +33,7 @@ namespace ModelSaber.API.GraphQL
                         return;
                     }
                     
-                    if (CheckAuth(context.UserContext["auth"], dbToken => dbToken.IsExpired()))
+                    if (!CheckAuth(context.UserContext["auth"], dbToken => dbToken.IsExpired()))
                         context.ReportError(new ValidationError(context.Document.OriginalQuery!, "6.1.1", $"Authorization is required to access {operation.Name}", operation) { Code = "auth-required" });
                 }),
                 new MatchingNodeVisitor<Field>((field, context) =>
@@ -46,7 +46,7 @@ namespace ModelSaber.API.GraphQL
                         return;
                     }
                     
-                    if (fieldDef.RequirePermission().ToBool() && CheckAuth(context.UserContext["auth"], dbToken => dbToken.IsExpired() || fieldDef.HasPermission(dbToken.GetScopes()).ToBool()))
+                    if (fieldDef.RequirePermission().ToBool() && !CheckAuth(context.UserContext["auth"], dbToken => dbToken.IsExpired() || fieldDef.HasPermission(dbToken.GetScopes()).ToBool()))
                         context.ReportError(new ValidationError(context.Document.OriginalQuery!, "6.1.1", $"Authorization is required to access {field.Name}", field) { Code = "auth-required" });
                 })
             );

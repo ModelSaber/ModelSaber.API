@@ -29,12 +29,14 @@ namespace ModelSaber.API.GraphQL
     {
         public ModelSaberMutation(ModelSaberDbContextLeaser dbContextLeaser)
         {
-            Field<IntGraphType>("vote", "Modifies votes for a model.", new QueryArguments(new QueryArgument<NonNullGraphType<VoteInputType>> { Name = "voteArgs" }), context =>
+            Field<VoteType>("vote", "Modifies votes for a model.", new QueryArguments(new QueryArgument<NonNullGraphType<VoteInputType>> { Name = "voteArgs" }), context =>
             {
                 var args = context.GetArgument<VoteArgs>("voteArgs");
                 //this is just a jank workaround for some reason it does not like dependency injection right here
                 using var dbContext = dbContextLeaser.GetContext();
-                var record = dbContext.Votes.ToList().FirstOrDefault(t => args.Platform == "web" ? t.UserId.ToString() == args.Id : t.GameId == args.Id && t.ModelId == args.ModelId);
+                var id = args.Platform == "web" ? dbContext.Users.First(t => t.DiscordId == Convert.ToUInt64(args.Id)).Id.ToString() : args.Id;
+                var record = dbContext.Votes.ToList().FirstOrDefault(t => args.Platform == "web" ? t.UserId.ToString() == id : t.GameId == id && t.ModelId == args.ModelId);
+                Vote? ret = null;
                 if (args.IsDelete)
                 {
                     if (record != null)
@@ -42,22 +44,24 @@ namespace ModelSaber.API.GraphQL
                 }
                 else
                 {
+                    ret = record;
                     if (record != null)
                         record.DownVote = args.IsDownVote;
                     else
                     {
-                        dbContext.Votes.Add(new Vote
+                        ret = new Vote
                         {
-                            GameId = args.Platform != "web" ? args.Id : null,
-                            UserId = args.Platform == "web" ? Convert.ToUInt32(args.Id) : null,
+                            GameId = args.Platform != "web" ? id : null,
+                            UserId = args.Platform == "web" ? Convert.ToUInt32(id) : null,
                             DownVote = args.IsDownVote,
                             ModelId = args.ModelId
-                        });
+                        };
+                        dbContext.Votes.Add(ret);
                     }
                 }
                 dbContext.SaveChanges();
 
-                return 0;
+                return ret;
             });
         }
     }
@@ -66,6 +70,21 @@ namespace ModelSaber.API.GraphQL
     {
         public ModelSaberQuery(ModelSaberDbContextLeaser dbContextLeaser)
         {
+            Field<VoteType>("modelVote", "Gets the current users vote.", new QueryArguments(new QueryArgument<NonNullGraphType<StringGraphType>> { Name = "id" }), context =>
+            {
+                var id = context.GetArgument<string>("id");
+                var guid = Cursor.FromCursor<Guid>(id);
+                var auth = context.UserContext["auth"];
+                Console.WriteLine(auth);
+                var userId = auth switch
+                {
+                    UserLogons user => user.UserId,
+                    OAuthToken { UserId: { } } token => token.UserId.Value,
+                    _ => throw new NullReferenceException("Tried to get an uint from null")
+                };
+                return dbContextLeaser.GetContext().Votes.Include(t => t.Model).FirstOrDefault(t => t.UserId == userId && t.Model.Uuid == guid);
+            }).RequiresPermission();
+
             Field<ListGraphType<UserType>>("users", "The entire user list", null,
                 context => dbContextLeaser.GetContext().Users.Include(t => t.Models)
                     .ThenInclude(t => t.Model)
@@ -73,13 +92,12 @@ namespace ModelSaber.API.GraphQL
                     .ThenInclude(t => t.Tag)
                     .Include(t => t.UserTags));
 
-            Field<ListGraphType<VoteType>>("modelVotes", "Gets the vote stats for the model.", new QueryArguments(new QueryArgument<StringGraphType> { Name = "id" }), context =>
+            Field<ListGraphType<VoteCompoundType>>("modelVotes", "Gets the vote stats for the model.", new QueryArguments(new QueryArgument<NonNullGraphType<StringGraphType>> { Name = "id" }), context =>
             {
                 var id = context.GetArgument<string>("id");
                 var guid = Cursor.FromCursor<Guid>(id);
                 var votes = dbContextLeaser.GetContext().Models.Include(t => t.Votes).Where(t => t.Uuid == guid).SelectMany(t => t.Votes).ToList();
-                Console.WriteLine(JsonSerializer.Serialize(votes, new JsonSerializerOptions { ReferenceHandler = ReferenceHandler.IgnoreCycles }));
-                return votes.GroupBy(t => t.DownVote).Select(t => new ModelVoteCondensed { Down = t.Key, Count = t.Count(f => f.Model.Uuid == guid) });
+                return votes.GroupBy(t => t.DownVote).Select(t => new ModelVoteCondensed { Down = t.Key, Count = t.Count() });
             });
 
             Field<ModelType>("model", "Single model", new QueryArguments(new QueryArgument<NonNullGraphType<StringGraphType>> { Name = "id" }), context =>

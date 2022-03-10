@@ -103,9 +103,19 @@ namespace ModelSaber.API.GraphQL
         }
     }
 
-    public sealed class VoteType : ObjectGraphType<ModelVoteCondensed>
+    public sealed class VoteType : ObjectGraphType<Vote>
     {
         public VoteType()
+        {
+            Field(o => o.DownVote);
+            Field(o => o.GameId, type: typeof(StringGraphType));
+            Field(o => o.UserId, type: typeof(UIntGraphType));
+        }
+    }
+
+    public sealed class VoteCompoundType : ObjectGraphType<ModelVoteCondensed>
+    {
+        public VoteCompoundType()
         {
             Field(o => o.Down, type: typeof(BooleanGraphType));
             Field(o => o.Count, type: typeof(IntGraphType));

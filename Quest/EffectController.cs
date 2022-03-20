@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -7,7 +8,7 @@ using ModelSaber.Models;
 
 namespace ModelSaber.API.Quest
 {
-    [ApiController, Route("quest/[controller]")]
+    [ApiController, Route("quest/[controller]"), Obsolete("Use GraphQL")]
     public class EffectController : Components.EffectsController
     {
         [HttpGet]

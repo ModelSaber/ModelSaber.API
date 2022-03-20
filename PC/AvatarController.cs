@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -7,7 +8,7 @@ using ModelSaber.Models;
 
 namespace ModelSaber.API.PC
 {
-    [ApiController, Route("pc/[controller]")]
+    [ApiController, Route("pc/[controller]"), Obsolete("Use GraphQL")]
     public class AvatarsController : Components.AvatarsController
     {
         [HttpGet]

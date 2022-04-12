@@ -9,7 +9,7 @@
   <ItemGroup>
     <PackageReference Include="EFCore.NamingConventions" Version="6.0.0" />
     <PackageReference Include="GraphQL" Version="4.7.1" />
-    <PackageReference Include="GraphQL.DataLoader" Version="4.7.1" />
+    <PackageReference Include="GraphQL.DataLoader" Version="5.1.1" />
     <PackageReference Include="GraphQL.MemoryCache" Version="4.7.1" />
     <PackageReference Include="GraphQL.MicrosoftDI" Version="4.7.1" />
     <PackageReference Include="GraphQL.Server.Transports.AspNetCore" Version="5.2.0" />

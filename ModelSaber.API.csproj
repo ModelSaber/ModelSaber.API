@@ -1,33 +1,42 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
-  <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
-    <RootNamespace>ModelSaber.API</RootNamespace>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
+	<PropertyGroup>
+		<TargetFramework>net6.0</TargetFramework>
+		<RootNamespace>ModelSaber.API</RootNamespace>
+		<Nullable>enable</Nullable>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="EFCore.NamingConventions" Version="6.0.0" />
-    <PackageReference Include="GraphQL" Version="4.7.1" />
-    <PackageReference Include="GraphQL.DataLoader" Version="4.7.1" />
-    <PackageReference Include="GraphQL.MemoryCache" Version="4.7.1" />
-    <PackageReference Include="GraphQL.MicrosoftDI" Version="4.7.1" />
-    <PackageReference Include="GraphQL.Server.Transports.AspNetCore" Version="5.2.0" />
-    <PackageReference Include="GraphQL.Server.Transports.AspNetCore.SystemTextJson" Version="5.2.0" />
-    <PackageReference Include="GraphQL.Server.Ui.Playground" Version="5.2.0" />
-    <PackageReference Include="GraphQL.Server.Ui.Voyager" Version="5.2.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="6.0.3">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="6.0.3" />
-    <PackageReference Include="prometheus-net.AspNetCore" Version="6.0.0" />
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.3.0" />
-    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="6.16.0" />
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="EFCore.NamingConventions" Version="6.0.0" />
+		<PackageReference Include="GraphQL" Version="4.7.1" />
+		<PackageReference Include="GraphQL.DataLoader" Version="4.7.1" />
+		<PackageReference Include="GraphQL.MemoryCache" Version="4.7.1" />
+		<PackageReference Include="GraphQL.MicrosoftDI" Version="4.7.1" />
+		<PackageReference Include="GraphQL.Server.Transports.AspNetCore" Version="5.2.0" />
+		<PackageReference Include="GraphQL.Server.Transports.AspNetCore.SystemTextJson" Version="5.2.0" />
+		<PackageReference Include="GraphQL.Server.Ui.Playground" Version="5.2.0" />
+		<PackageReference Include="GraphQL.Server.Ui.Voyager" Version="5.2.0" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="6.0.3">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+		<PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="6.0.3" />
+		<PackageReference Include="prometheus-net.AspNetCore" Version="6.0.0" />
+		<PackageReference Include="Swashbuckle.AspNetCore" Version="6.3.0" />
+		<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="6.16.0" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\ModelSaber.Models\ModelSaber.Models.csproj" />
-  </ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\ModelSaber.Models\ModelSaber.Models.csproj" />
+		<Compile Include="..\ModelSaber.Main\Models\**" LinkBase="Models" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Compile Remove="..\ModelSaber.Main\Models\Database.cd" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <None Include="..\ModelSaber.Main\Models\Database.cd" LinkBase="Models"/>
+	</ItemGroup>
 
 </Project>

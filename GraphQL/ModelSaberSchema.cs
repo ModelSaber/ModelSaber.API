@@ -122,11 +122,12 @@ namespace ModelSaber.API.GraphQL
                 .Bidirectional()
                 .Argument<TypeType>("modelType", "The model type you want to grab.")
                 .Argument<NonNullGraphType<StringGraphType>>("nameFilter", "The name to search for in the models list. (can be empty string)")
+                .Argument<BooleanGraphType, bool>("nsfw", "Whether or not to include nsfw models in the list. Defaults to false.")
                 .PageSize(100)
                 .ResolveAsync(context => ResolveModelConnectionAsync(dbContextLeaser.GetContext(),
                     d => d.Models,
-                    (set, i, a, c) => set.GetModelAsync(i, a, context.GetArgument<string>("nameFilter"), (TypeEnum?)context.GetArgument(typeof(object), "modelType"), c),
-                    (set, i, a, c) => set.GetModelReverseAsync(i, a, context.GetArgument<string>("nameFilter"), (TypeEnum?)context.GetArgument(typeof(object), "modelType"), c),
+                    (set, i, a, c) => set.GetModelAsync(i, a, context.GetArgument<string>("nameFilter"), (TypeEnum?)context.GetArgument(typeof(object), "modelType"), context.GetArgument<bool>("nsfw"), c),
+                    (set, i, a, c) => set.GetModelReverseAsync(i, a, context.GetArgument<string>("nameFilter"), (TypeEnum?)context.GetArgument(typeof(object), "modelType"), context.GetArgument<bool>("nsfw"), c),
                     model => model.Uuid,
                     (set, c, id) => set.GetModelNextPageAsync(c, id),
                     (set, c, id) => set.GetModelPreviousPageAsync(c, id),

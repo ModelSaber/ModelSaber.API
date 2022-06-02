@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using GraphQL;
 using GraphQL.Builders;
 using GraphQL.Types;
 using GraphQL.Types.Relay.DataObjects;
@@ -44,8 +45,9 @@ namespace ModelSaber.API.GraphQL
                 .Name("models")
                 .Description("Model list")
                 .Bidirectional()
+                .Argument<BooleanGraphType, bool>("nsfw", "Whether or not to include nsfw models in the list. Defaults to false.")
                 .PageSize(100)
-                .ResolveAsync(context => context.ResolveConnectionAsync(connectionContext => connectionContext.Source?.ModelTags.Select(t => t.Model)!, 
+                .ResolveAsync(context => context.ResolveConnectionAsync(connectionContext => connectionContext.Source?.ModelTags.Select(t => t.Model).Where(t => t.Nsfw == context.GetArgument<bool>("nsfw"))!, 
                     (set, i, u, c) => Task.FromResult(set.OrderByDescending(t => t.Id).If(u.HasValue, x => x.SkipWhile(y => y.Uuid != u!.Value)).TakeLast(i!.Value).ToList()),
                     (set, i, u, c) => Task.FromResult(set.OrderBy(t => t.Id).If(u.HasValue, x => x.SkipWhile(y => y.Uuid != u!.Value)).Take(i!.Value).ToList()),
                     set => set.Uuid,
@@ -84,9 +86,10 @@ namespace ModelSaber.API.GraphQL
             Connection<ModelType>()
                 .Name("models")
                 .Description("Model list")
+                .Argument<BooleanGraphType, bool>("nsfw", "Whether or not to include nsfw models in the list. Defaults to false.")
                 .Bidirectional()
                 .PageSize(100)
-                .ResolveAsync(context => context.ResolveConnectionAsync(connectionContext => connectionContext.Source?.Models.Select(t => t.Model)!, 
+                .ResolveAsync(context => context.ResolveConnectionAsync(connectionContext => connectionContext.Source?.Models.Select(t => t.Model).Where(t => t.Nsfw == context.GetArgument<bool>("nsfw"))!,
                     (set, i, u, c) => Task.FromResult(set.OrderByDescending(t => t.Id).If(u.HasValue, x => x.SkipWhile(y => y.Uuid != u!.Value)).TakeLast(i!.Value).ToList()),
                     (set, i, u, c) => Task.FromResult(set.OrderBy(t => t.Id).If(u.HasValue, x => x.SkipWhile(y => y.Uuid != u!.Value)).Take(i!.Value).ToList()),
                     set => set.Uuid,

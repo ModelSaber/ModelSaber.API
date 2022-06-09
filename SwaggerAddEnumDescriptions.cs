@@ -4,6 +4,7 @@ using System.Linq;
 using Microsoft.OpenApi.Any;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerGen;
+// ReSharper disable ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
 
 namespace ModelSaber.API
 {
@@ -13,58 +14,49 @@ namespace ModelSaber.API
         {
             bool checkOperationType(OperationType type)
             {
-                return type == OperationType.Get || type == OperationType.Post || type == OperationType.Put;
+                return type is OperationType.Get or OperationType.Post or OperationType.Put;
             }
             // add enum descriptions to result models
-            foreach ((string itemKey, OpenApiSchema property) in swaggerDoc.Components.Schemas)
+            foreach (var (itemKey, property) in swaggerDoc.Components.Schemas)
             {
                 IList<IOpenApiAny> propertyEnums = property.Enum;
-                if (propertyEnums != null && propertyEnums.Count > 0)
+                if (propertyEnums is { Count: > 0 })
                 {
                     property.Description += DescribeEnum(itemKey, propertyEnums);
                 }
             }
 
             // add enum descriptions to input parameters
-            if (swaggerDoc.Paths.Count > 0)
+            if (swaggerDoc.Paths.Count <= 0) return;
+            foreach (var pathItem in swaggerDoc.Paths.Values)
             {
-                foreach (OpenApiPathItem pathItem in swaggerDoc.Paths.Values)
-                {
-                    DescribeEnumParameters(pathItem.Parameters);
+                DescribeEnumParameters(pathItem.Parameters);
 
-                    // head, patch, options, delete left out
-                    IDictionary<OperationType, OpenApiOperation> possibleParameterisedOperations = pathItem.Operations;
-                    possibleParameterisedOperations.Where(x => x.Value != null && checkOperationType(x.Key)).ToList().ForEach(x => DescribeEnumParameters(x.Value.Parameters));
-                }
+                // head, patch, options, delete left out
+                IDictionary<OperationType, OpenApiOperation> possibleParameterizedOperations = pathItem.Operations;
+                possibleParameterizedOperations.Where(x => x.Value != null && checkOperationType(x.Key)).ToList().ForEach(x => DescribeEnumParameters(x.Value.Parameters));
             }
         }
 
         private void DescribeEnumParameters(IList<OpenApiParameter> parameters)
         {
-            if (parameters != null)
+            if (parameters == null) return;
+            foreach (var param in parameters)
             {
-                foreach (OpenApiParameter param in parameters)
+                IList<IOpenApiAny> paramEnums = param.Schema.Enum;
+                if (paramEnums is { Count: > 0 })
                 {
-                    IList<IOpenApiAny> paramEnums = param.Schema.Enum;
-                    if (paramEnums != null && paramEnums.Count > 0)
-                    {
-                        param.Description += DescribeEnum(paramEnums);
-                    }
+                    param.Description += DescribeEnum(paramEnums);
                 }
             }
         }
 
-        private string DescribeEnum(IList<IOpenApiAny> enums)
+        private string DescribeEnum(IEnumerable<IOpenApiAny> enums)
         {
-            List<string> enumDescriptions = new List<string>();
-            foreach (object enumOption in enums)
-            {
-                enumDescriptions.Add(string.Format("{0} = {1}", (int)enumOption, Enum.GetName(enumOption.GetType(), enumOption)));
-            }
-            return string.Join(", ", enumDescriptions.ToArray());
+            return string.Join(", ", (from object enumOption in enums select $"{(int)enumOption} = {Enum.GetName(enumOption.GetType(), enumOption)}").ToArray());
         }
 
-        private string DescribeEnum(string enumName, IList<IOpenApiAny> enums)
+        private string DescribeEnum(string enumName, IEnumerable<IOpenApiAny> enums)
         {
             var enumType = GetEnumType("ModelSaber.Database.Models." + enumName);
             return enumType is not { IsEnum: true }

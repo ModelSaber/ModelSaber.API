@@ -93,5 +93,10 @@ namespace ModelSaber.API.GraphQL
 
             return ret;
         }
+
+        public ValueTask<object?> ResolveAsync(IResolveFieldContext context, FieldMiddlewareDelegate next)
+        {
+            return new ValueTask<object?>(Resolve(context, next));
+        }
     }
 }

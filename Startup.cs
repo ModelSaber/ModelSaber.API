@@ -1,15 +1,13 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text.Json.Serialization;
 using GraphQL;
 using GraphQL.Caching;
-using GraphQL.DataLoader;
 using GraphQL.Execution;
-using GraphQL.Instrumentation;
 using GraphQL.MicrosoftDI;
 using GraphQL.Server;
 using GraphQL.Validation.Complexity;
+using GraphQL.SystemTextJson;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -20,9 +18,7 @@ using Microsoft.OpenApi.Models;
 using ModelSaber.API.GraphQL;
 using ModelSaber.Database;
 using ModelSaber.API.Helpers;
-using Newtonsoft.Json;
 using Prometheus;
-using GraphQLBuilderExtensions = GraphQL.MicrosoftDI.GraphQLBuilderExtensions;
 using GraphQLServiceLifetime = GraphQL.DI.ServiceLifetime;
 
 namespace ModelSaber.API
@@ -58,7 +54,7 @@ namespace ModelSaber.API
             {
                 SizeLimit = CacheSize,
                 SlidingExpiration = new TimeSpan(0, 1, 0, 0),
-                ExpirationScanFrequency = new TimeSpan(0,0,10,0)
+                ExpirationScanFrequency = new TimeSpan(0, 0, 10, 0)
             }));
             services.AddRouting(options => options.LowercaseUrls = true);
             services.AddControllers().AddJsonOptions(options =>
@@ -66,30 +62,33 @@ namespace ModelSaber.API
                 options.JsonSerializerOptions.Converters.AddRange(JsonConverters.Converters);
                 options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
             });
-            GraphQLBuilderExtensions.AddGraphQL(services)
-                .AddServer(true)
-                .AddSchema<ModelSaberSchema>()
-                .ConfigureExecution(options =>
+            services.AddGraphQL(builder =>
                 {
-                    options.EnableMetrics = true;
-                    var logger = options.RequestServices?.GetRequiredService<ILogger<Startup>>();
-                    options.UnhandledExceptionDelegate = ctx =>
-                        logger?.LogError("{Error} occurred", ctx.OriginalException.Message);
+                    builder
+                        .AddSchema<ModelSaberSchema>()
+                        .ConfigureExecution((options, next) =>
+                        {
+                            options.EnableMetrics = true;
+                            var logger = options.RequestServices?.GetRequiredService<ILogger<Startup>>();
+                            options.UnhandledExceptionDelegate = async ctx =>
+                                logger?.LogError("{Error} occurred", ctx.OriginalException.Message);
+                            return next(options);
+                        })
+                        .AddSystemTextJson(options =>
+                        {
+                            options.Converters.AddRange(JsonConverters.Converters);
+                        })
+                        .AddErrorInfoProvider<ErrorInfoProvider>() // TODO change this to custom error provider later https://github.com/graphql-dotnet/server/blob/develop/samples/Samples.Server/CustomErrorInfoProvider.cs
+                        //.AddWebSockets() // TODO update events through websocket how ever the fuck we are going to do that idk yet
+                        .AddDocumentCache<MemoryDocumentCache>()
+                        .AddGraphTypes(typeof(ModelSaberSchema).Assembly)
+                        .AddUserContextBuilder<UserContextBuilder>()
+                        .AddValidationRule<AuthValidationRule>()
+                        .AddMiddleware<MetricsFieldMiddleware>(true, GraphQLServiceLifetime.Singleton)
+                        .AddComplexityAnalyzer<ComplexityAnalyzer>()
+                        .AddHttpMiddleware<ModelSaberSchema>();
                 })
-                .AddSystemTextJson(options =>
-                {
-                    options.Converters.AddRange(JsonConverters.Converters);
-                })
-                .AddErrorInfoProvider<DefaultErrorInfoProvider>() // TODO change this to custom error provider later https://github.com/graphql-dotnet/server/blob/develop/samples/Samples.Server/CustomErrorInfoProvider.cs
-                .Configure<ErrorInfoProviderOptions>(opt => opt.ExposeExceptionStackTrace = Environment.IsDevelopment())
-                //.AddWebSockets() // TODO update events through websocket how ever the fuck we are going to do that idk yet
-                .AddDataLoader()
-                .AddDocumentCache<MemoryDocumentCache>()
-                .AddGraphTypes(typeof(ModelSaberSchema).Assembly)
-                .AddUserContextBuilder<UserContextBuilder>()
-                .AddValidationRule<AuthValidationRule>()
-                .AddMiddleware<MetricsFieldMiddleware>(true, GraphQLServiceLifetime.Singleton)
-                .AddComplexityAnalyzer<ComplexityAnalyzer>();
+                .Configure<ErrorInfoProviderOptions>(opt => opt.ExposeExceptionStackTrace = Environment.IsDevelopment());
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v3", new OpenApiInfo

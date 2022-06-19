@@ -21,7 +21,7 @@ namespace ModelSaber.API.GraphQL
             Field(o => o.Name);
             Field(o => o.Description, true);
             Field<PlatformType>("platform", "The platform the model is for", resolve: context => context.Source.Platform);
-            Field<StatusType>("status", "The status of the model", resolve: context => context.Source.Status);
+            Field<ListGraphType<StatusType>>("status", "The status of the model", resolve: context => context.Source.Status.GetListFromFlag());
             Field<TypeType>("type", "What model type it is", resolve: context => context.Source.Type);
             Field(o => o.Thumbnail);
             Field<GuidGraphType>("id", "The id of the model", resolve: context => context.Source.Uuid);

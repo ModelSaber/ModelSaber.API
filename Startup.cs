@@ -135,15 +135,4 @@ namespace ModelSaber.API
 
         }
     }
-
-    public static class Extensions
-    {
-        public static void AddRange<T>(this ICollection<T> collection, IEnumerable<T> enumerable)
-        {
-            foreach (var element in enumerable)
-            {
-                collection.Add(element);
-            }
-        }
-    }
 }

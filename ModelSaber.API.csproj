@@ -1,40 +1,44 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
-	<PropertyGroup>
-		<TargetFramework>net6.0</TargetFramework>
-		<RootNamespace>ModelSaber.API</RootNamespace>
-		<Nullable>enable</Nullable>
-	</PropertyGroup>
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <RootNamespace>ModelSaber.API</RootNamespace>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+    <DockerfileContext>.</DockerfileContext>
+    <SourceRevisionId>build$([System.DateTime]::UtcNow.ToString("yyyy-MM-ddTHH:mm:ss:fffZ"))</SourceRevisionId>
+  </PropertyGroup>
 
-	<ItemGroup>
-		<PackageReference Include="EFCore.NamingConventions" Version="6.0.0" />
-		<PackageReference Include="GraphQL" Version="5.3.0" />
-		<PackageReference Include="GraphQL.AspNetCore3" Version="3.0.0" />
-		<PackageReference Include="GraphQL.MemoryCache" Version="5.3.0" />
-		<PackageReference Include="GraphQL.Server.All" Version="6.1.0" />
-		<PackageReference Include="GraphQL.SystemTextJson" Version="5.3.0" />
-		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="6.0.5">
-			<PrivateAssets>all</PrivateAssets>
-			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-		</PackageReference>
-		<PackageReference Include="ModelSaber.Models" Version="1.0.0" />
-		<PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
-		<PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="6.0.4" />
-		<PackageReference Include="prometheus-net.AspNetCore" Version="6.0.0" />
-		<PackageReference Include="Swashbuckle.AspNetCore" Version="6.3.1" />
-		<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="6.18.0" />
-	</ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="EFCore.NamingConventions" Version="6.0.0" />
+    <PackageReference Include="GraphQL" Version="5.3.0" />
+    <PackageReference Include="GraphQL.AspNetCore3" Version="3.0.0" />
+    <PackageReference Include="GraphQL.MemoryCache" Version="5.3.0" />
+    <PackageReference Include="GraphQL.Server.All" Version="6.1.0" />
+    <PackageReference Include="GraphQL.SystemTextJson" Version="5.3.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="6.0.5">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="ModelSaber.Models" Version="1.2.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="6.0.4" />
+    <PackageReference Include="prometheus-net.AspNetCore" Version="6.0.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.3.1" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="6.18.0" />
+  </ItemGroup>
 
-	<ItemGroup>
-		<Compile Include="..\ModelSaber.Main\Models\**" LinkBase="Models" />
-	</ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\ModelSaber.Main\Models\**" LinkBase="Models" />
+  </ItemGroup>
 
-	<ItemGroup>
-	  <Compile Remove="..\ModelSaber.Main\Models\Database.cd" />
-	</ItemGroup>
+  <ItemGroup>
+    <Compile Remove="..\ModelSaber.Main\Models\Database.cd" />
+  </ItemGroup>
 
-	<ItemGroup>
-	  <None Include="..\ModelSaber.Main\Models\Database.cd" LinkBase="Models" />
-	</ItemGroup>
+  <ItemGroup>
+    <None Include="..\ModelSaber.Main\Models\Database.cd" LinkBase="Models" />
+  </ItemGroup>
 
 </Project>

@@ -113,7 +113,7 @@ namespace ModelSaber.API.GraphQL
                 var models = context.GetArgument<string>("order") == "asc" ? dbContext.Models.OrderBy(t => t.Id) : dbContext.Models.OrderByDescending(t => t.Id);
                 var modelCursors = models.ToList().Select(t => t.Uuid).Select(Cursor.ToCursor).ToList();
                 var size = context.GetArgument<int>("size");
-                return modelCursors.Chunk(size).Select(t => t.Last());
+                return modelCursors.Chunk(size).Select(t => t.Last()).SkipLast(1);
             });
 
             Connection<ModelType>()

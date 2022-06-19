@@ -18,14 +18,13 @@ namespace ModelSaber.API.GraphQL
         {
             Field(o => o.Date, type: typeof(DateTimeGraphType));
             Field(o => o.Hash, type: typeof(StringGraphType));
-            Field(o => o.Id);
             Field(o => o.Name);
             Field(o => o.Description, true);
-            Field(o => o.Platform, type: typeof(PlatformType));
-            Field(o => o.Status, type: typeof(StatusType));
-            Field(o => o.Type, type: typeof(TypeType));
+            Field<PlatformType>("platform", "The platform the model is for", resolve: context => context.Source.Platform);
+            Field<StatusType>("status", "The status of the model", resolve: context => context.Source.Status);
+            Field<TypeType>("type", "What model type it is", resolve: context => context.Source.Type);
             Field(o => o.Thumbnail);
-            Field(o => o.Uuid);
+            Field<GuidGraphType>("id", "The id of the model", resolve: context => context.Source.Uuid);
             Field("cursor", o => WebEncoders.Base64UrlEncode(o.Uuid.ToByteArray()));
             Field(o => o.DownloadPath);
             Field(o => o.UserId, type: typeof(ULongGraphType));

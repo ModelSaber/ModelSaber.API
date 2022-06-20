@@ -1,0 +1,80 @@
+name: "Build"
+
+on:
+  push:
+    branches: [ 'master' ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v3
+
+    - name: Add github nuget repo
+      run: dotnet nuget add source --username ${{ secrets.RUNNER_USER }} --password ${{ secrets.RUNNER_TOKEN }} --store-password-in-clear-text --name github "https://nuget.pkg.github.com/ModelSaber/index.json"
+
+    - name: Bump version and push tag
+      id: version
+      uses: mathieudutour/github-tag-action@v6.0
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Get yarn cache
+      id: yarn-cache-dir-path
+      run: echo "::set-output name=dir::$(yarn cache dir)"
+
+    - uses: actions/cache@v2
+      id: yarn-cache
+      if: ${{ steps.version.outputs.new_tag != '' }}
+      with:
+        path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
+        key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-yarn-
+    
+    - name: Install deps
+      if: ${{ steps.version.outputs.new_tag != '' }}
+      run: |
+        dotnet restore
+        cd ClientApp
+        yarn
+
+    - name: Build
+      if: ${{ steps.version.outputs.new_tag != '' }}
+      run: |
+        dotnet build -c Release --no-restore
+        dotnet publish -c Release -o ./dotnet-app -r linux-x64 /p:PublishSingleFile=true /p:Version=${{ steps.version.outputs.new_version }}
+    
+    - name: Pack Build
+      if: ${{ steps.version.outputs.new_tag != '' }}
+      run: |
+        mv ./dotnet-app/ClientApp/dist ./dotnet-app/dist
+        rm -rf ./dotnet-app/ClientApp
+        cd ./dotnet-app
+        tar -zcvf ../dotnet-main-app.tgz .
+    
+    - name: Create Release
+      id: create_release
+      if: ${{ steps.version.outputs.new_tag != '' }}
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.version.outputs.new_tag }}
+        release_name: Release ${{ steps.version.outputs.new_tag }}
+        body: ${{ steps.version.outputs.changelog }}
+        draft: false
+        prerelease: false
+
+    - name: Upload Build
+      if: ${{ steps.version.outputs.new_tag != '' }}
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./dotnet-main-app.tgz
+        asset_name: dotnet-main-app.tgz
+        asset_content_type: application/tar+gzip

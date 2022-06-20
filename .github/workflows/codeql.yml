@@ -20,6 +20,9 @@ on:
   schedule:
     - cron: '42 12 * * 4'
 
+env:
+  RAW_URL: https://raw.githubusercontent.com/ModelSaber/ModelSaber.Main/master/Models
+
 jobs:
   analyze:
     name: Analyze
@@ -43,6 +46,14 @@ jobs:
     - name: Add github nuget repo
       run: dotnet nuget add source --username ${{ secrets.RUNNER_USER }} --password ${{ secrets.RUNNER_TOKEN }} --store-password-in-clear-text --name github "https://nuget.pkg.github.com/ModelSaber/index.json"
 
+    - name: Add missing files to project
+      run: |
+        mkdir Models
+        cd Models
+        wget ${{ env.RAW_URL }}/EnumerableExtensions.cs
+        wget ${{ env.RAW_URL }}/FilterRank.cs
+        wget ${{ env.RAW_URL }}/ModelSaberDbContext.cs
+
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v2
@@ -58,8 +69,9 @@ jobs:
         
     # Autobuild attempts to build any compiled languages  (C/C++, C#, or Java).
     # If this step fails, then you should remove it and run the build manually (see below)
-    - name: Autobuild
-      uses: github/codeql-action/autobuild@v2
+    - name: Build
+      run: |
+        dotnet build --configuration Release ModelSaber.API.CI.csproj
 
     # ℹ️ Command-line programs to run using the OS shell.
     # 📚 See https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstepsrun

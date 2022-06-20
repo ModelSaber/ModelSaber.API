@@ -3,6 +3,7 @@
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
     <RootNamespace>ModelSaber.API</RootNamespace>
+    <AssemblyName>ModelSaber.API</AssemblyName>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
@@ -27,19 +28,6 @@
     <PackageReference Include="prometheus-net.AspNetCore" Version="6.0.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.3.1" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="6.18.0" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Include="..\ModelSaber.Main\Models\**" LinkBase="Models" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Remove="..\ModelSaber.Main\Models\Database.cd" />
-    <Compile Remove="..\ModelSaber.Main\Models\ModelSaberOld.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Include="..\ModelSaber.Main\Models\Database.cd" LinkBase="Models" />
   </ItemGroup>
 
 </Project>

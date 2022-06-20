@@ -4,6 +4,9 @@ on:
   push:
     branches: [ 'master' ]
 
+env:
+  RAW_URL: https://raw.githubusercontent.com/ModelSaber/ModelSaber.Main/master/Models
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -26,11 +29,19 @@ jobs:
       run: |
         dotnet restore
 
+    - name: Add missing files to project
+      run: |
+        mkdir Models
+        cd Models
+        wget ${{ env.RAW_URL }}/EnumerableExtensions.cs
+        wget ${{ env.RAW_URL }}/FilterRank.cs
+        wget ${{ env.RAW_URL }}/ModelSaberDbContext.cs
+
     - name: Build
       if: ${{ steps.version.outputs.new_tag != '' }}
       run: |
-        dotnet build -c Release --no-restore
-        dotnet publish -c Release -o ./publish -r linux-x64 /p:PublishSingleFile=true /p:Version=${{ steps.version.outputs.new_version }}
+        dotnet build ModelSaber.API.CI.csproj -c Release --no-restore
+        dotnet publish ModelSaber.API.CI.csproj -c Release -o ./publish -r linux-x64 /p:PublishSingleFile=true /p:Version=${{ steps.version.outputs.new_version }}
     
     - name: Pack Build
       if: ${{ steps.version.outputs.new_tag != '' }}

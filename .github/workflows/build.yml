@@ -27,7 +27,7 @@ jobs:
     - name: Install deps
       if: ${{ steps.version.outputs.new_tag != '' }}
       run: |
-        dotnet restore
+        dotnet restore ModelSaber.API.CI.csproj
 
     - name: Add missing files to project
       run: |

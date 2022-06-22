@@ -115,8 +115,8 @@ namespace ModelSaber.API.GraphQL
                 new QueryArgument<ListGraphType<StatusType>> { Name = "status", DefaultValue = new List<Status> { Status.Approved, Status.Published }, Description = "The status of the model you want to grab. Defaults to Approved and Published."}), context =>
             {
                 using var dbContext = dbContextLeaser.GetContext();
-                var status = context.GetArgument<List<Status>>("status");
-                var models = (context.GetArgument<string>("order") == "asc" ? dbContext.Models.OrderBy(t => t.Id) : dbContext.Models.OrderByDescending(t => t.Id)).Where(t => (t.Status & status.GetFlagFromList()) != 0);
+                var status = context.GetArgument<List<Status>>("status").GetFlagFromList();
+                var models = (context.GetArgument<string>("order") == "asc" ? dbContext.Models.OrderBy(t => t.Id) : dbContext.Models.OrderByDescending(t => t.Id)).Where(t => (t.Status & status) == status);
                 var modelCursors = models.ToList().Select(t => t.Uuid).Select(Cursor.ToCursor).ToList();
                 var size = context.GetArgument<int>("size");
                 return modelCursors.Chunk(size).Select(t => t.Last()).SkipLast(1);

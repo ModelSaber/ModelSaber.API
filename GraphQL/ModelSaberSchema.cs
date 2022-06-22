@@ -70,7 +70,7 @@ namespace ModelSaber.API.GraphQL
     {
         public ModelSaberQuery(ModelSaberDbContextLeaser dbContextLeaser)
         {
-            Field<StringGraphType>("version", "Returns the current version of the API.", resolve: _ => Program.Version.ToString());
+            Field<StringGraphType>("version", "Returns the current version of the API.", resolve: _ => Program.Version.ToString(3));
             Field<DateTimeGraphType>("buildTime", "Returns the time the API was built.", resolve: _ => Program.CompiledTime);
             Field<VoteType>("modelVote", "Gets the current users vote.", new QueryArguments(new QueryArgument<NonNullGraphType<StringGraphType>> { Name = "id" }), context =>
             {

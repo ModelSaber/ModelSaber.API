@@ -17,7 +17,7 @@ namespace ModelSaber.Database
         {
             var regexs = string.IsNullOrWhiteSpace(filter) ? Array.Empty<Regex>() : filter.Split(' ').Select(t => new Regex(t, RegexOptions.Compiled | RegexOptions.IgnoreCase)).ToArray();
             var id = createdAfter.HasValue ? models.Single(t => t.Uuid == createdAfter).Id : 0;
-            return Task.FromResult(models.Where(t => (t.Status & status) != 0).IncludeModelData().Where(t => t.Id > id && t.Nsfw == nsfw).OrderBy(t => t.Id).ToList()
+            return Task.FromResult(models.Where(t => (t.Status & status) == status).IncludeModelData().Where(t => t.Id > id && t.Nsfw == nsfw).OrderBy(t => t.Id).ToList()
                 .If(regexs.Any(), x => x.Select(t => new FilterRank<Model>(t, regexs, arg => arg.Name)).OrderByDescending(t => t.Counts).Where(t => t.PassCheck()).Select(t => t.Value))
                 .If(mType.HasValue, x => x.Where(t => t.Type == mType!.Value))                          
                 .If(first.HasValue, x => x.Take(first!.Value)).ToList());
@@ -27,7 +27,7 @@ namespace ModelSaber.Database
         {
             var regexs = string.IsNullOrWhiteSpace(filter) ? Array.Empty<Regex>() : filter.Split(' ').Select(t => new Regex(t, RegexOptions.Compiled | RegexOptions.IgnoreCase)).ToArray();
             var id = createdBefore.HasValue ? models.Single(t => t.Uuid == createdBefore).Id : 0;
-            return Task.FromResult(models.Where(t => (t.Status & status) != 0).IncludeModelData().Where(t => t.Id < id && t.Nsfw == nsfw).OrderByDescending(t => t.Id).ToList()
+            return Task.FromResult(models.Where(t => (t.Status & status) == status).IncludeModelData().Where(t => t.Id < id && t.Nsfw == nsfw).OrderByDescending(t => t.Id).ToList()
                 .If(regexs.Any(), x => x.Select(t => new FilterRank<Model>(t, regexs, arg => arg.Name)).OrderByDescending(t => t.Counts).Where(t => t.PassCheck()).Select(t => t.Value))
                 .If(mType.HasValue, x => x.Where(t => t.Type == mType!.Value))                            
                 .If(last.HasValue, x => x.Take(last!.Value)).ToList());

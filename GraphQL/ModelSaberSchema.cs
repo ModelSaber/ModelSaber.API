@@ -125,11 +125,12 @@ namespace ModelSaber.API.GraphQL
                 .Argument<TypeType>("modelType", "The model type you want to grab.")
                 .Argument<NonNullGraphType<StringGraphType>>("nameFilter", "The name to search for in the models list. (can be empty string)")
                 .Argument<BooleanGraphType, bool>("nsfw", "Whether or not to include nsfw models in the list. Defaults to false.")
+                .Argument<ListGraphType<StatusType>>("status", "The status of the model you want to grab. Defaults to Approved and Published.", argument => argument.DefaultValue = new List<Status> { Status.Approved, Status.Published })
                 .PageSize(100)
                 .ResolveAsync(context => ResolveModelConnectionAsync(dbContextLeaser.GetContext(),
                     d => d.Models,
-                    (set, i, a, c) => set.GetModelAsync(i, a, context.GetArgument<string>("nameFilter"), (TypeEnum?)context.GetArgument(typeof(object), "modelType"), context.GetArgument<bool>("nsfw"), c),
-                    (set, i, a, c) => set.GetModelReverseAsync(i, a, context.GetArgument<string>("nameFilter"), (TypeEnum?)context.GetArgument(typeof(object), "modelType"), context.GetArgument<bool>("nsfw"), c),
+                    (set, i, a, c) => set.GetModelAsync(i, a, context.GetArgument<string>("nameFilter"), (TypeEnum?)context.GetArgument(typeof(object), "modelType"), context.GetArgument<bool>("nsfw"), context.GetArgument<List<Status>>("status").GetFlagFromList(), c),
+                    (set, i, a, c) => set.GetModelReverseAsync(i, a, context.GetArgument<string>("nameFilter"), (TypeEnum?)context.GetArgument(typeof(object), "modelType"), context.GetArgument<bool>("nsfw"), context.GetArgument<List<Status>>("status").GetFlagFromList(), c),
                     model => model.Uuid,
                     (set, c, id) => set.GetModelNextPageAsync(c, id),
                     (set, c, id) => set.GetModelPreviousPageAsync(c, id),

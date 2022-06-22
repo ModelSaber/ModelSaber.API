@@ -109,10 +109,14 @@ namespace ModelSaber.API.GraphQL
                 return dbContextLeaser.GetContext().Models.Where(t => t.Uuid == guid).IncludeModelData().First();
             });
 
-            Field<ListGraphType<StringGraphType>>("modelCursors", "Lists cursors based on pagination size", new QueryArguments(new QueryArgument<IntGraphType> { Name = "size", DefaultValue = 100 }, new QueryArgument<StringGraphType> { Name = "order", DefaultValue = "asc", Description = "sort order for models either 'asc' or 'desc'" }), context =>
+            Field<ListGraphType<StringGraphType>>("modelCursors", "Lists cursors based on pagination size", new QueryArguments(
+                new QueryArgument<IntGraphType> { Name = "size", DefaultValue = 100 },
+                new QueryArgument<StringGraphType> { Name = "order", DefaultValue = "asc", Description = "sort order for models either 'asc' or 'desc'" },
+                new QueryArgument<ListGraphType<StatusType>> { Name = "status", DefaultValue = new List<Status> { Status.Approved, Status.Published }, Description = "The status of the model you want to grab. Defaults to Approved and Published."}), context =>
             {
                 using var dbContext = dbContextLeaser.GetContext();
-                var models = context.GetArgument<string>("order") == "asc" ? dbContext.Models.OrderBy(t => t.Id) : dbContext.Models.OrderByDescending(t => t.Id);
+                var status = context.GetArgument<List<Status>>("status");
+                var models = (context.GetArgument<string>("order") == "asc" ? dbContext.Models.OrderBy(t => t.Id) : dbContext.Models.OrderByDescending(t => t.Id)).Where(t => (t.Status & status.GetFlagFromList()) != 0);
                 var modelCursors = models.ToList().Select(t => t.Uuid).Select(Cursor.ToCursor).ToList();
                 var size = context.GetArgument<int>("size");
                 return modelCursors.Chunk(size).Select(t => t.Last()).SkipLast(1);

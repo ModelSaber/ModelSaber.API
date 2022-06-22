@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
+using System.Threading.Tasks;
 using GraphQL;
 using GraphQL.Caching;
 using GraphQL.Execution;
@@ -70,8 +71,10 @@ namespace ModelSaber.API
                         {
                             options.EnableMetrics = true;
                             var logger = options.RequestServices?.GetRequiredService<ILogger<Startup>>();
-                            options.UnhandledExceptionDelegate = async ctx =>
-                                logger?.LogError("{Error} occurred", ctx.OriginalException.Message);
+                            options.UnhandledExceptionDelegate = ctx => {
+                                logger?.LogError("{Error}\n{Stack}", ctx.OriginalException.Message, ctx.OriginalException.StackTrace);
+                                return Task.CompletedTask;
+                            };
                             return next(options);
                         })
                         .AddSystemTextJson(options =>

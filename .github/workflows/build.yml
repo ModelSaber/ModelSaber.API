@@ -61,3 +61,7 @@ jobs:
         draft: false
         prerelease: false
         files: api.tgz
+
+    - name: Notify live test server
+      run: |
+        curl -XPUT -H "Content-type: application/json" -d '{"project": "${{ github.event.repository.name }}","tag": "${{ steps.version.outputs.new_tag }}"}' 'https://msupdater.wildwolf.dev/'

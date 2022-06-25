@@ -127,7 +127,7 @@ namespace ModelSaber.API.GraphQL
                 .Description("Model list")
                 .Bidirectional()
                 .Argument<TypeType>("modelType", "The model type you want to grab.")
-                .Argument<NonNullGraphType<StringGraphType>>("nameFilter", "The name to search for in the models list. (can be empty string)")
+                .Argument<StringGraphType>("nameFilter", "The name to search for in the models list. (can be empty string)", argument => argument.DefaultValue = "")
                 .Argument<BooleanGraphType, bool>("nsfw", "Whether or not to include nsfw models in the list. Defaults to false.")
                 .Argument<ListGraphType<StatusType>>("status", "The status of the model you want to grab. Defaults to Approved and Published.", argument => argument.DefaultValue = new List<Status> { Status.Approved, Status.Published })
                 .PageSize(100)

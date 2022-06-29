@@ -111,13 +111,18 @@ namespace ModelSaber.API.GraphQL
 
             Field<ListGraphType<StringGraphType>>("modelCursors", "Lists cursors based on pagination size", new QueryArguments(
                 new QueryArgument<IntGraphType> { Name = "size", DefaultValue = 100 },
-                new QueryArgument<StringGraphType> { Name = "order", DefaultValue = "asc", Description = "sort order for models either 'asc' or 'desc'" },
-                new QueryArgument<ListGraphType<StatusType>> { Name = "status", DefaultValue = new List<Status> { Status.Approved, Status.Published }, Description = "The status of the model you want to grab. Defaults to Approved and Published."}), context =>
+                new QueryArgument<StringGraphType> { Name = "order", DefaultValue = "asc", Description = "Sort order for models either 'asc' or 'desc'" },
+                new QueryArgument<ListGraphType<StatusType>> { Name = "status", DefaultValue = new List<Status> { Status.Approved, Status.Published }, Description = "The status of the model you want to grab. Defaults to Approved and Published."},
+                new QueryArgument<BooleanGraphType>{Name = "nsfw", DefaultValue = false, Description = "Whether or not to include nsfw models in the list. Defaults to false"}), context =>
             {
                 using var dbContext = dbContextLeaser.GetContext();
                 var status = context.GetArgument<List<Status>>("status").GetFlagFromList();
+                var nsfw = context.GetArgument<bool>("nsfw");
                 var models = (context.GetArgument<string>("order") == "asc" ? dbContext.Models.OrderBy(t => t.Id) : dbContext.Models.OrderByDescending(t => t.Id)).Where(t => (t.Status & status) == status);
-                var modelCursors = models.ToList().Select(t => t.Uuid).Select(Cursor.ToCursor).ToList();
+                var modelsFilter = new List<Model>();
+                modelsFilter.AddRange(models.Where(t => t.Nsfw == false));
+                if(nsfw) modelsFilter.AddRange(models.Where(t => t.Nsfw == true));
+                var modelCursors = modelsFilter.ToList().Select(t => t.Uuid).Select(Cursor.ToCursor).ToList();
                 var size = context.GetArgument<int>("size");
                 return modelCursors.Chunk(size).Select(t => t.Last()).SkipLast(1);
             });
@@ -130,14 +135,29 @@ namespace ModelSaber.API.GraphQL
                 .Argument<StringGraphType>("nameFilter", "The name to search for in the models list. (can be empty string)", argument => argument.DefaultValue = "")
                 .Argument<BooleanGraphType, bool>("nsfw", "Whether or not to include nsfw models in the list. Defaults to false.")
                 .Argument<ListGraphType<StatusType>>("status", "The status of the model you want to grab. Defaults to Approved and Published.", argument => argument.DefaultValue = new List<Status> { Status.Approved, Status.Published })
+                .Argument<PlatformType>("platform", "The platform you want to grab. Defaults to PC.", argument => argument.DefaultValue = Platform.Pc)
                 .PageSize(100)
                 .ResolveAsync(context => ResolveModelConnectionAsync(dbContextLeaser.GetContext(),
                     d => d.Models,
-                    (set, i, a, c) => set.GetModelAsync(i, a, context.GetArgument<string>("nameFilter"), (TypeEnum?)context.GetArgument(typeof(object), "modelType"), context.GetArgument<bool>("nsfw"), context.GetArgument<List<Status>>("status").GetFlagFromList(), c),
-                    (set, i, a, c) => set.GetModelReverseAsync(i, a, context.GetArgument<string>("nameFilter"), (TypeEnum?)context.GetArgument(typeof(object), "modelType"), context.GetArgument<bool>("nsfw"), context.GetArgument<List<Status>>("status").GetFlagFromList(), c),
+                    (dbSet, first, after, cancellationToken) => dbSet.GetModelAsync(first, 
+                        after, 
+                        context.GetArgument<string>("nameFilter"), 
+                        context.GetArgument<TypeEnum?>("modelType"), 
+                        context.GetArgument<bool>("nsfw"), 
+                        context.GetArgument<List<Status>>("status").GetFlagFromList(), 
+                        context.GetArgument<Platform>("platform"), 
+                        cancellationToken),
+                    (dbSet, last, before, cancellationToken) => dbSet.GetModelReverseAsync(last, 
+                        before, 
+                        context.GetArgument<string>("nameFilter"), 
+                        context.GetArgument<TypeEnum?>("modelType"), 
+                        context.GetArgument<bool>("nsfw"), 
+                        context.GetArgument<List<Status>>("status").GetFlagFromList(), 
+                        context.GetArgument<Platform>("platform"), 
+                        cancellationToken),
                     model => model.Uuid,
-                    (set, c, id) => set.GetModelNextPageAsync(c, id),
-                    (set, c, id) => set.GetModelPreviousPageAsync(c, id),
+                    (dbSet, cancellationToken, id) => dbSet.GetModelNextPageAsync(cancellationToken, id),
+                    (dbSet, cancellationToken, id) => dbSet.GetModelPreviousPageAsync(cancellationToken, id),
                     context));
 
             Connection<TagType>()

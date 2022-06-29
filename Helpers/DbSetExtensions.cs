@@ -13,24 +13,34 @@ namespace ModelSaber.Database
     public static class DbSetExtensions
     {
         // ReSharper disable PossibleInvalidOperationException
-        public static Task<List<Model>> GetModelAsync(this DbSet<Model> models, int? first, Guid? createdAfter, string? filter, TypeEnum? mType, bool nsfw, Status status, CancellationToken cancellationToken)
+        public static async Task<List<Model>> GetModelsFromDBFiltered(this List<Model> models, Status status, bool nsfw, Platform platform)
+        {
+            var tmp = new List<Model>();
+            tmp.AddRange(models.ToList().Where(t => (t.Status & status) == status && t.Nsfw == false && t.Platform == platform).ToList());
+            if(nsfw) tmp.AddRange(models.ToList().Where(t => (t.Status & status) == status && t.Nsfw && t.Platform == platform).ToList());
+            return tmp;
+        }
+
+        public static async Task<List<Model>> GetModelAsync(this DbSet<Model> models, int? first, Guid? createdAfter, string? filter, TypeEnum? mType, bool nsfw, Status status, Platform platform, CancellationToken cancellationToken)
         {
             var regexs = string.IsNullOrWhiteSpace(filter) ? Array.Empty<Regex>() : filter.Split(' ').Select(t => new Regex(t, RegexOptions.Compiled | RegexOptions.IgnoreCase)).ToArray();
             var id = createdAfter.HasValue ? models.Single(t => t.Uuid == createdAfter).Id : 0;
-            return Task.FromResult(models.Where(t => (t.Status & status) == status).IncludeModelData().Where(t => t.Id > id && t.Nsfw == nsfw).OrderBy(t => t.Id).ToList()
+            var modelsReturn = await models.IncludeModelData().Where(t => t.Id > id).ToList().GetModelsFromDBFiltered(status, nsfw, platform);
+            return modelsReturn.OrderBy(t => t.Id)
                 .If(regexs.Any(), x => x.Select(t => new FilterRank<Model>(t, regexs, arg => arg.Name)).OrderByDescending(t => t.Counts).Where(t => t.PassCheck()).Select(t => t.Value))
                 .If(mType.HasValue, x => x.Where(t => t.Type == mType!.Value))                          
-                .If(first.HasValue, x => x.Take(first!.Value)).ToList());
+                .If(first.HasValue, x => x.Take(first!.Value)).ToList();
         }
 
-        public static Task<List<Model>> GetModelReverseAsync(this DbSet<Model> models, int? last, Guid? createdBefore, string? filter, TypeEnum? mType, bool nsfw, Status status, CancellationToken cancellationToken)
+        public static async Task<List<Model>> GetModelReverseAsync(this DbSet<Model> models, int? last, Guid? createdBefore, string? filter, TypeEnum? mType, bool nsfw, Status status, Platform platform, CancellationToken cancellationToken)
         {
             var regexs = string.IsNullOrWhiteSpace(filter) ? Array.Empty<Regex>() : filter.Split(' ').Select(t => new Regex(t, RegexOptions.Compiled | RegexOptions.IgnoreCase)).ToArray();
             var id = createdBefore.HasValue ? models.Single(t => t.Uuid == createdBefore).Id : 0;
-            return Task.FromResult(models.Where(t => (t.Status & status) == status).IncludeModelData().Where(t => t.Id < id && t.Nsfw == nsfw).OrderByDescending(t => t.Id).ToList()
+            var modelsReturn = await models.IncludeModelData().Where(t => t.Id < id).ToList().GetModelsFromDBFiltered(status, nsfw, platform);
+            return modelsReturn.OrderByDescending(t => t.Id)
                 .If(regexs.Any(), x => x.Select(t => new FilterRank<Model>(t, regexs, arg => arg.Name)).OrderByDescending(t => t.Counts).Where(t => t.PassCheck()).Select(t => t.Value))
                 .If(mType.HasValue, x => x.Where(t => t.Type == mType!.Value))                            
-                .If(last.HasValue, x => x.Take(last!.Value)).ToList());
+                .If(last.HasValue, x => x.Take(last!.Value)).ToList();
         }
 
         public static Task<bool> GetModelNextPageAsync(this DbSet<Model> models, CancellationToken cancellationToken, uint? id) => id.HasValue ?

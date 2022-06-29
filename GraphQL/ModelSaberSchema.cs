@@ -113,16 +113,20 @@ namespace ModelSaber.API.GraphQL
                 new QueryArgument<IntGraphType> { Name = "size", DefaultValue = 100 },
                 new QueryArgument<StringGraphType> { Name = "order", DefaultValue = "asc", Description = "Sort order for models either 'asc' or 'desc'" },
                 new QueryArgument<ListGraphType<StatusType>> { Name = "status", DefaultValue = new List<Status> { Status.Approved, Status.Published }, Description = "The status of the model you want to grab. Defaults to Approved and Published."},
-                new QueryArgument<BooleanGraphType>{Name = "nsfw", DefaultValue = false, Description = "Whether or not to include nsfw models in the list. Defaults to false"}), context =>
+                new QueryArgument<BooleanGraphType>{Name = "nsfw", DefaultValue = false, Description = "Whether or not to include nsfw models in the list. Defaults to false"},
+                new QueryArgument<PlatformType>{Name = "platform", DefaultValue = Platform.Pc, Description = "The platform you want to grab. Defaults to PC."},
+                new QueryArgument<TypeType>{Name = "type", Description = "The model type you want to grab. Defaults to all."}), context =>
             {
                 using var dbContext = dbContextLeaser.GetContext();
                 var status = context.GetArgument<List<Status>>("status").GetFlagFromList();
                 var nsfw = context.GetArgument<bool>("nsfw");
+                var platform = context.GetArgument<Platform>("platform");
+                var type = context.GetArgument<TypeEnum?>("type");
                 var models = (context.GetArgument<string>("order") == "asc" ? dbContext.Models.OrderBy(t => t.Id) : dbContext.Models.OrderByDescending(t => t.Id)).Where(t => (t.Status & status) == status);
                 var modelsFilter = new List<Model>();
-                modelsFilter.AddRange(models.Where(t => t.Nsfw == false));
-                if(nsfw) modelsFilter.AddRange(models.Where(t => t.Nsfw == true));
-                var modelCursors = modelsFilter.ToList().Select(t => t.Uuid).Select(Cursor.ToCursor).ToList();
+                modelsFilter.AddRange(models.Where(t => t.Nsfw == false && t.Platform == platform));
+                if(nsfw) modelsFilter.AddRange(models.Where(t => t.Nsfw == true && t.Platform == platform));
+                var modelCursors = modelsFilter.ToList().If(type.HasValue, x => x.Where(t => t.Type == type!.Value)).Select(t => t.Uuid).Select(Cursor.ToCursor).ToList();
                 var size = context.GetArgument<int>("size");
                 return modelCursors.Chunk(size).Select(t => t.Last()).SkipLast(1);
             });
@@ -131,7 +135,7 @@ namespace ModelSaber.API.GraphQL
                 .Name("models")
                 .Description("Model list")
                 .Bidirectional()
-                .Argument<TypeType>("modelType", "The model type you want to grab.")
+                .Argument<TypeType>("modelType", "The model type you want to grab. Defaults to all.")
                 .Argument<StringGraphType>("nameFilter", "The name to search for in the models list. (can be empty string)", argument => argument.DefaultValue = "")
                 .Argument<BooleanGraphType, bool>("nsfw", "Whether or not to include nsfw models in the list. Defaults to false.")
                 .Argument<ListGraphType<StatusType>>("status", "The status of the model you want to grab. Defaults to Approved and Published.", argument => argument.DefaultValue = new List<Status> { Status.Approved, Status.Published })

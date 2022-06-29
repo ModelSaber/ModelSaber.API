@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO.Compression;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using GraphQL;
@@ -11,6 +12,7 @@ using GraphQL.Validation.Complexity;
 using GraphQL.SystemTextJson;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -102,6 +104,15 @@ namespace ModelSaber.API
                 });
                 c.DocumentFilter<SwaggerAddEnumDescriptions>();
             });
+            services.AddResponseCompression(options =>
+            {
+                options.EnableForHttps = true;
+                options.Providers.Add<GzipCompressionProvider>();
+            });
+            services.Configure<GzipCompressionProviderOptions>(options =>
+            {
+                options.Level = CompressionLevel.SmallestSize;
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -125,6 +136,7 @@ namespace ModelSaber.API
             app.UseGraphQLVoyager("/voyager");
 
             app.UseHttpsRedirection();
+            app.UseResponseCompression();
 
             app.UseRouting();
 

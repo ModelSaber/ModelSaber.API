@@ -15,7 +15,7 @@
     <PackageReference Include="GraphQL" Version="5.3.0" />
     <PackageReference Include="GraphQL.AspNetCore3" Version="3.0.0" />
     <PackageReference Include="GraphQL.MemoryCache" Version="5.3.0" />
-    <PackageReference Include="GraphQL.Server.All" Version="6.1.0" />
+    <PackageReference Include="GraphQL.Server.All" Version="6.1.1" />
     <PackageReference Include="GraphQL.SystemTextJson" Version="5.3.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="6.0.5">
       <PrivateAssets>all</PrivateAssets>
